@@ -2,7 +2,10 @@
 #include <vector>
 #include <algorithm>
 #include "AtcuGearbox.h"
+<<<<<<< HEAD
 #include <map>
+=======
+>>>>>>> refactored
 
 float AtcuGearbox::parsePowertrainRatioThreshold() {
     auto avg = (std::accumulate(PowertrainHistoryDistribution.begin(), PowertrainHistoryDistribution.end(), 0.0f)) / PowertrainHistoryDistribution.size();
@@ -10,6 +13,7 @@ float AtcuGearbox::parsePowertrainRatioThreshold() {
     if (max > avg) {
         std::vector<float> gapElements = {};
         auto gap = max - avg;
+<<<<<<< HEAD
         std::map<float, int> group = {};
         for (auto& c : PowertrainHistoryDistribution) {
             if (group.find(c) != group.end()) group[c]++;
@@ -20,6 +24,8 @@ float AtcuGearbox::parsePowertrainRatioThreshold() {
                 return p1.second < p2.second;
             });
         avg = (avg + (most.first * 9)) / 10;
+=======
+>>>>>>> refactored
         for (auto& c : PowertrainHistoryDistribution)
             if (c > avg) gapElements.push_back(c);
         auto ratio = avg - ((gap * ((gapElements.size() + 0.0f) / (PowertrainHistoryDistribution.size() + 0.00f))) * 2.0f);
@@ -27,11 +33,15 @@ float AtcuGearbox::parsePowertrainRatioThreshold() {
         if (integralityIndex > 1.0f) integralityIndex = 1.0f;
         return ratio * integralityIndex;
     }
+<<<<<<< HEAD
     else {
         auto integralityIndex = (PowertrainHistoryDistribution.size() + 1.0f) / (PowertrainHistorySize + 1.0f);
         if (integralityIndex > 1.0f) integralityIndex = 1.0f;
         return avg * integralityIndex;
     }
+=======
+    else return avg;
+>>>>>>> refactored
 }
 
 float AtcuGearbox::parsePowertrainRatio() {
@@ -40,6 +50,7 @@ float AtcuGearbox::parsePowertrainRatio() {
     if (max > avg) {
         std::vector<float> gapElements = {};
         auto gap = max - avg;
+<<<<<<< HEAD
         std::map<float, int> group = {};
         for (auto& c : PowertrainHistoryDistribution) {
             if (group.find(c) != group.end()) group[c]++;
@@ -53,6 +64,10 @@ float AtcuGearbox::parsePowertrainRatio() {
         for (auto& c : PowertrainHistoryDistribution) {
             if (c > avg) gapElements.push_back(c);
         }
+=======
+        for (auto& c : PowertrainHistoryDistribution)
+            if (c > avg) gapElements.push_back(c);
+>>>>>>> refactored
         return avg + (gap * ((gapElements.size() + 0.0f) / (PowertrainHistoryDistribution.size() + 0.00f)));
     }
     else return avg;
