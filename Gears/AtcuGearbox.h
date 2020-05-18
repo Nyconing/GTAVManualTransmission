@@ -11,8 +11,5 @@ struct AtcuGearbox {
     float parsePowertrainRatio();
     void updatePowertrainRatioDistribution(float ratio);
     bool isPowertrainRatioTrustworthy();
-<<<<<<< HEAD
     float CurrentRpm = 0.00f;
-=======
->>>>>>> refactored
 };

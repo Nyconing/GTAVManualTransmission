@@ -35,11 +35,7 @@ void AtcuLogic::Cycle() {
                     break;
                 }
             }
-<<<<<<< HEAD
             if (allWheelOnGround && !isSkidding(3.0f) && g_gearStates.Atcu.CurrentRpm <= g_vehData.mRPM) {
-=======
-            if (allWheelOnGround && !isSkidding(3.0f)) {
->>>>>>> refactored
                 g_gearStates.Atcu.updatePowertrainRatioDistribution(powertrainRatio);
             }
             else {
@@ -51,24 +47,14 @@ void AtcuLogic::Cycle() {
     float currSpeed = g_vehData.mWheelAverageDrivenTyreSpeed;
     float currSpeedWorld = g_vehData.mVelocity.y;
     bool skidding = isSkidding(3.5f);
-<<<<<<< HEAD
     g_gearStates.Atcu.CurrentRpm = g_vehData.mRPM;
-=======
->>>>>>> refactored
     //shift up
     if (currGear < g_vehData.mGearTop) {
         if (skidding) {
             // use world speed instead when skiding
-<<<<<<< HEAD
             if (currSpeedWorld > (getGearMaxSpeed(currGear))) {
                 shiftTo(g_vehData.mGearCurr + 1, true);
                 g_gearStates.FakeNeutral = false;
-=======
-            if (currSpeedWorld > (getGearMaxSpeed(currGear) * 0.95f)) {
-                shiftTo(g_vehData.mGearCurr + 1, true);
-                g_gearStates.FakeNeutral = false;
-                g_gearStates.LastUpshiftTime = currGameTime;
->>>>>>> refactored
             }
         }
         else {
@@ -76,18 +62,10 @@ void AtcuLogic::Cycle() {
                 if (currTotalPower <= (gearPredictStandardPower(currGear + 1) * 0.99f) && currSpeed > (getGearMinSpeed(currGear + 1) * economyCorrection)) {
                     shiftTo(g_vehData.mGearCurr + 1, true);
                     g_gearStates.FakeNeutral = false;
-<<<<<<< HEAD
-=======
-                    g_gearStates.LastUpshiftTime = currGameTime;
->>>>>>> refactored
                 }
                 else if (g_vehData.mRPM > 0.98f && currSpeedWorld > getGearMaxSpeed(currGear)) {
                     shiftTo(g_vehData.mGearCurr + 1, true);
                     g_gearStates.FakeNeutral = false;
-<<<<<<< HEAD
-=======
-                    g_gearStates.LastUpshiftTime = currGameTime;
->>>>>>> refactored
                 }
             }
             else {
@@ -96,10 +74,6 @@ void AtcuLogic::Cycle() {
                 if (currSpeed > (((currGearMaxSpeed - prevGearMaxSpeed) * economyCorrection) + (prevGearMaxSpeed * economyCorrection))) {
                     shiftTo(g_vehData.mGearCurr + 1, true);
                     g_gearStates.FakeNeutral = false;
-<<<<<<< HEAD
-=======
-                    g_gearStates.LastUpshiftTime = currGameTime;
->>>>>>> refactored
                 }
             }
         }
