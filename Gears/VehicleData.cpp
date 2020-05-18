@@ -1,4 +1,5 @@
 #include <inc/natives.h>
+#include <numeric>
 
 #include "VehicleData.hpp"
 #include "Memory/VehicleFlags.h"
