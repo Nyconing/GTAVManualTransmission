@@ -16,8 +16,4 @@ extern VehicleExtensions g_ext;
 
 namespace AtcuLogic{
 	void Cycle();
-	float getGearMinSpeed(int gear);
-	float getGearMaxSpeed(int gear);
-	float gearPredictStandardPower(int gear);
-	float gearPredictRpm(int atGear);
 };
