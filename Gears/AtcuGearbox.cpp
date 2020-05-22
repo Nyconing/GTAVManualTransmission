@@ -3,6 +3,7 @@
 #include <algorithm>
 #include "AtcuLogic.h"
 #include <map>
+#include <vector>
 
 float AtcuGearbox::parsePowerIntersectionRpm(int gear) {
     if (g_vehData.mGearTop == gear) return 1.0f;

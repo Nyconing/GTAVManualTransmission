@@ -749,13 +749,7 @@ void setShiftMode(EShiftMode shiftMode) {
         tempMode = EShiftMode::Automatic;
     }
 
-    if (g_settings.MTOptions.Override && g_activeConfig != nullptr) {
-        g_activeConfig->MTOptions.ShiftMode = tempMode;
-        g_settings.SetVehicleConfig(g_activeConfig);
-    }
-    else {
-        g_settings.MTOptions.ShiftMode = tempMode;
-    }
+    APPLY_CONFIG_VALUE(MTOptions.ShiftMode, tempMode);
 
     std::string mode = "Mode: ";
     switch (g_settings().MTOptions.ShiftMode) {
@@ -1180,9 +1174,6 @@ void functionAShift() {
         float engineLoad = g_gearStates.ThrottleHang - map(g_vehData.mRPM, 0.2f, 1.0f, 0.0f, 1.0f);
         g_gearStates.EngineLoad = engineLoad;
         g_gearStates.UpshiftLoad = g_settings().AutoParams.UpshiftLoad;
-
-        if (skidding)
-            return;
 
         // Shift up.
         if (currGear < g_vehData.mGearTop) {
