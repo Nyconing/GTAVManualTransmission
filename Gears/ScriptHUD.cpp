@@ -28,6 +28,7 @@ extern VehicleGearboxStates g_gearStates;
 extern VehicleExtensions g_ext;
 extern Vehicle g_playerVehicle;
 extern VehicleData g_vehData;
+extern VehiclePeripherals g_peripherals;
 
 ///////////////////////////////////////////////////////////////////////////////
 //                           Display elements
@@ -38,7 +39,6 @@ namespace GForce {
     std::vector<Vector3> LastCoords(3);
     Vector3 PrevAccel;
     double PrevRotVel;
-    int LastUpdate = 0;
 }
 
 namespace DashLights {
@@ -49,7 +49,7 @@ namespace DashLights {
 }
 
 void updateDashLights() {
-    const int currentTime = GAMEPLAY::GET_GAME_TIMER();
+    const int currentTime = MISC::GET_GAME_TIMER();
 
     bool abs = false;
     bool tcs = false;
@@ -61,6 +61,20 @@ void updateDashLights() {
         esp |= g_vehData.mWheelsEspO[i] || g_vehData.mWheelsEspU[i];
     }
 
+    if (g_peripherals.IgnitionState == IgnitionState::Stall) {
+        abs = true;
+        tcs = true;
+        esp = true;
+    }
+
+    if (g_vehData.mHasABS) {
+        for (int i = 0; i < g_vehData.mWheelCount; ++i) {
+            abs |= g_vehData.mWheelTyreSpeeds[i] == 0.0f &&
+                g_ext.GetBrakeP(g_playerVehicle) > 0.0f &&
+                g_vehData.mVelocity.y > 3.0f;
+        }
+    }
+
     if (abs)
         DashLights::LastAbsTime = currentTime;
     if (tcs)
@@ -70,7 +84,7 @@ void updateDashLights() {
 }
 
 void drawDashLights() {
-    const int currentTime = GAMEPLAY::GET_GAME_TIMER();
+    const int currentTime = MISC::GET_GAME_TIMER();
 
     bool abs = DashLights::LastAbsTime + DashLights::LightDuration >= currentTime;
     bool tcs = DashLights::LastTcsTime + DashLights::LightDuration >= currentTime;
@@ -85,7 +99,7 @@ void drawDashLights() {
     const float YPos = g_settings.HUD.DashIndicators.YPos;
 
     Util::ColorF absColor{};
-    if (g_settings().DriveAssists.ABS.Enable) {
+    if (g_settings().DriveAssists.ABS.Enable || g_vehData.mHasABS) {
         if (abs) {
             absColor = { 1.0f, 1.0f, 1.0f, 1.0f };
         }
@@ -157,7 +171,7 @@ void drawDashLights() {
 
     GRAPHICS::DRAW_RECT(XPos, YPos,
         rectSzX, rectSzY,
-        0, 0, 0, 127);
+        0, 0, 0, 127, 0);
 }
 
 void drawGForces() {
@@ -184,13 +198,12 @@ void drawGForces() {
         LastCoords.erase(LastCoords.begin());
     }
 
-    int nowT = GAMEPLAY::GET_GAME_TIMER();
-    int dT = nowT - LastUpdate;
-    LastUpdate = nowT;
-
     double worldSpeed = sqrt(static_cast<double>(g_vehData.mVelocity.x) * static_cast<double>(g_vehData.mVelocity.x) +
         static_cast<double>(g_vehData.mVelocity.y) * static_cast<double>(g_vehData.mVelocity.y));
-    double worldRotVel = GetAngleBetween(V3D(LastCoords[1]) - V3D(LastCoords[0]), V3D(LastCoords[2]) - V3D(LastCoords[1])) / (static_cast<double>(dT) / 1000.0);
+    double worldRotVel = 
+        GetAngleBetween(V3D(LastCoords[1]) - V3D(LastCoords[0]), V3D(LastCoords[2]) - V3D(LastCoords[1])) /
+        static_cast<double>(MISC::GET_FRAME_TIME());
+
     if (isnan(worldRotVel)) {
         worldRotVel = PrevRotVel;
     }
@@ -210,24 +223,24 @@ void drawGForces() {
         CoordTrails.erase(CoordTrails.begin());
     }
 
-    GRAPHICS::DRAW_RECT(locX, locY, szX, szY, 0, 0, 0, 127);
-    GRAPHICS::DRAW_RECT(locX, locY, 0.001f, szY, 255, 255, 255, 127);
-    GRAPHICS::DRAW_RECT(locX, locY, szX, 0.001f, 255, 255, 255, 127);
+    GRAPHICS::DRAW_RECT(locX, locY, szX, szY, 0, 0, 0, 127, 0);
+    GRAPHICS::DRAW_RECT(locX, locY, 0.001f, szY, 255, 255, 255, 127, 0);
+    GRAPHICS::DRAW_RECT(locX, locY, szX, 0.001f, 255, 255, 255, 127, 0);
 
-    GRAPHICS::DRAW_RECT(locX + 0.25f * szX, locY, 0.001f, szY, 127, 127, 127, 127);
-    GRAPHICS::DRAW_RECT(locX, locY + 0.25f * szY, szX, 0.001f, 127, 127, 127, 127);
+    GRAPHICS::DRAW_RECT(locX + 0.25f * szX, locY, 0.001f, szY, 127, 127, 127, 127, 0);
+    GRAPHICS::DRAW_RECT(locX, locY + 0.25f * szY, szX, 0.001f, 127, 127, 127, 127, 0);
 
-    GRAPHICS::DRAW_RECT(locX - 0.25f * szX, locY, 0.001f, szY, 127, 127, 127, 127);
-    GRAPHICS::DRAW_RECT(locX, locY - 0.25f * szY, szX, 0.001f, 127, 127, 127, 127);
+    GRAPHICS::DRAW_RECT(locX - 0.25f * szX, locY, 0.001f, szY, 127, 127, 127, 127, 0);
+    GRAPHICS::DRAW_RECT(locX, locY - 0.25f * szY, szX, 0.001f, 127, 127, 127, 127, 0);
 
     int alpha = 0;
     for (auto it = CoordTrails.begin(); it != CoordTrails.end(); ++it) {
         auto c = *it;
         if (std::next(it) == CoordTrails.end()) {
-            GRAPHICS::DRAW_RECT(locX + c.first, locY + c.second, szX * 0.025f, szY * 0.025f, 255, 255, 255, 255);
+            GRAPHICS::DRAW_RECT(locX + c.first, locY + c.second, szX * 0.025f, szY * 0.025f, 255, 255, 255, 255, 0);
         }
         else {
-            GRAPHICS::DRAW_RECT(locX + c.first, locY + c.second, szX * 0.025f, szY * 0.025f, 127, 127, 127, alpha);
+            GRAPHICS::DRAW_RECT(locX + c.first, locY + c.second, szX * 0.025f, szY * 0.025f, 127, 127, 127, alpha, 0);
         }
         alpha += 255 / static_cast<int>(CoordTrails.size());
     }
@@ -237,10 +250,10 @@ void drawRPMIndicator(float x, float y, float width, float height, Util::ColorI 
     float bgpaddingx = 0.00f;
     float bgpaddingy = 0.01f;
     // background
-    GRAPHICS::DRAW_RECT(x, y, width + bgpaddingx, height + bgpaddingy, bg.R, bg.G, bg.B, bg.A);
+    GRAPHICS::DRAW_RECT(x, y, width + bgpaddingx, height + bgpaddingy, bg.R, bg.G, bg.B, bg.A, 0);
 
     // rpm bar
-    GRAPHICS::DRAW_RECT(x - width*0.5f + rpm*width*0.5f, y, width*rpm, height, fg.R, fg.G, fg.B, fg.A);
+    GRAPHICS::DRAW_RECT(x - width*0.5f + rpm*width*0.5f, y, width*rpm, height, fg.R, fg.G, fg.B, fg.A, 0);
 }
 
 void drawRPMIndicator() {
@@ -280,6 +293,39 @@ void drawRPMIndicator() {
         };
         rpmcolor = rpmlimiter;
     }
+
+    float rpm = g_vehData.mRPM;
+
+    // Stall indicator
+    if (Math::Near(g_vehData.mRPM, 0.2f, 0.01f) && g_gearStates.StallProgress > 0.0f) {
+        rpm = map(g_gearStates.StallProgress, 0.0f, 1.0f, 0.2f, 0.0f);
+
+        auto hsvColor = Util::RGB2HSV(Util::ColorF {
+            static_cast<float>(rpmcolor.R) / 255.0f,
+            static_cast<float>(rpmcolor.G) / 255.0f,
+            static_cast<float>(rpmcolor.B) / 255.0f,
+            1.0f, // alpha is ignored anyway
+        });
+
+        // hue: transition orange to red
+        hsvColor.R = map(rpm, 0.0f, 0.2f, 0.0f, 30.0f);        
+
+        // sat: transition whatever to full saturation
+        hsvColor.G = std::clamp(map(rpm, 0.1f, 0.2f, 1.0f, hsvColor.G), 0.0f, 1.0f);
+
+        // val: transition whatever to max saturated brightness
+        hsvColor.B = std::clamp(map(rpm, 0.1f, 0.2f, 1.0f, hsvColor.B), 0.0f, 1.0f);
+
+        auto rgbF = Util::HSV2RGB(hsvColor);
+
+        rpmcolor = Util::ColorI {
+            static_cast<int>(rgbF.R * 255.0f),
+            static_cast<int>(rgbF.G * 255.0f),
+            static_cast<int>(rgbF.B * 255.0f),
+            rpmcolor.A,
+        };
+    }
+
     drawRPMIndicator(
         g_settings.HUD.RPMBar.XPos,
         g_settings.HUD.RPMBar.YPos,
@@ -287,7 +333,7 @@ void drawRPMIndicator() {
         g_settings.HUD.RPMBar.YSz,
         rpmcolor,
         background,
-        g_vehData.mRPM
+        rpm
     );
 }
 
@@ -422,13 +468,8 @@ void drawDebugInfo() {
         }
         // Nyconing's ATCU
         else {
-            showText(0.01, 0.650, 0.3, fmt::format("Using powertrain ratio: {:n}{}", g_gearStates.Atcu.parsePowertrainRatio(), g_gearStates.Atcu.isPowertrainRatioTrustworthy() ? "" : "(in training)"));
-            auto wp = g_ext.GetWheelPower(g_playerVehicle);
-            float totalPower = std::accumulate(wp.begin(), wp.end(), 0.0f);
-            totalPower = totalPower / g_vehData.mWheelCount;
-            float currGearRatio = g_vehData.mGearRatios[g_vehData.mGearCurr];
-            showText(0.01, 0.675, 0.3, fmt::format("Current powertrain ratio: {:n}", totalPower / currGearRatio));
-            showText(0.01, 0.700, 0.3, fmt::format("Powertrain training threshold: {:n}", g_gearStates.Atcu.parsePowertrainRatioThreshold()));
+            showText(0.01, 0.650, 0.3, fmt::format("Next optimal up-shifting: {:.2f}%", g_gearStates.Atcu.upshiftingIndex * 100.0f));
+            showText(0.01, 0.675, 0.3, fmt::format("Next optimal down-shifting: {:.2f}%", g_gearStates.Atcu.downshiftingIndex * 100.0f));
         }
     }
 
@@ -475,8 +516,11 @@ void drawDebugInfo() {
 
 void drawInputWheelInfo() {
     // Steering Wheel
-    float rotation = g_settings.Wheel.Steering.AngleMax * (g_controls.SteerVal - 0.5f);
-    if (g_controls.PrevInput != CarControls::Wheel) rotation = 90.0f * -g_ext.GetSteeringInputAngle(g_playerVehicle);
+    float rotation;
+    if (g_controls.PrevInput == CarControls::Wheel) 
+        rotation = g_settings().Wheel.Steering.AngleMax * (g_controls.SteerVal - 0.5f);
+    else if (g_settings().CustomSteering.CustomRotation)
+        rotation = g_settings().CustomSteering.CustomRotationDegrees * 0.5f * -g_ext.GetSteeringInputAngle(g_playerVehicle);
 
     drawTexture(g_textureWheelId, 0, -9998, 100,
         g_settings.HUD.Wheel.ImgSize, g_settings.HUD.Wheel.ImgSize,
@@ -490,16 +534,16 @@ void drawInputWheelInfo() {
     float barYBase = (g_settings.HUD.Wheel.PedalYPos + g_settings.HUD.Wheel.PedalYSz * 0.5f);
 
     GRAPHICS::DRAW_RECT(g_settings.HUD.Wheel.PedalXPos, g_settings.HUD.Wheel.PedalYPos, 3.0f * barWidth + g_settings.HUD.Wheel.PedalXPad, g_settings.HUD.Wheel.PedalYSz + g_settings.HUD.Wheel.PedalYPad, 
-        0, 0, 0, g_settings.HUD.Wheel.PedalBgA);
+        0, 0, 0, g_settings.HUD.Wheel.PedalBgA, 0);
     GRAPHICS::DRAW_RECT(g_settings.HUD.Wheel.PedalXPos + 1.0f * barWidth, barYBase - g_controls.ThrottleVal * g_settings.HUD.Wheel.PedalYSz * 0.5f,
         barWidth, g_controls.ThrottleVal * g_settings.HUD.Wheel.PedalYSz, 
-        g_settings.HUD.Wheel.PedalThrottleR, g_settings.HUD.Wheel.PedalThrottleG, g_settings.HUD.Wheel.PedalThrottleB, g_settings.HUD.Wheel.PedalThrottleA);
+        g_settings.HUD.Wheel.PedalThrottleR, g_settings.HUD.Wheel.PedalThrottleG, g_settings.HUD.Wheel.PedalThrottleB, g_settings.HUD.Wheel.PedalThrottleA, 0);
     GRAPHICS::DRAW_RECT(g_settings.HUD.Wheel.PedalXPos + 0.0f * barWidth, barYBase - g_controls.BrakeVal * g_settings.HUD.Wheel.PedalYSz * 0.5f,
         barWidth, g_controls.BrakeVal * g_settings.HUD.Wheel.PedalYSz,
-        g_settings.HUD.Wheel.PedalBrakeR, g_settings.HUD.Wheel.PedalBrakeG, g_settings.HUD.Wheel.PedalBrakeB, g_settings.HUD.Wheel.PedalBrakeA);
+        g_settings.HUD.Wheel.PedalBrakeR, g_settings.HUD.Wheel.PedalBrakeG, g_settings.HUD.Wheel.PedalBrakeB, g_settings.HUD.Wheel.PedalBrakeA, 0);
     GRAPHICS::DRAW_RECT(g_settings.HUD.Wheel.PedalXPos - 1.0f * barWidth, barYBase - g_controls.ClutchVal * g_settings.HUD.Wheel.PedalYSz * 0.5f,
         barWidth, g_controls.ClutchVal * g_settings.HUD.Wheel.PedalYSz,
-        g_settings.HUD.Wheel.PedalClutchR, g_settings.HUD.Wheel.PedalClutchG, g_settings.HUD.Wheel.PedalClutchB, g_settings.HUD.Wheel.PedalClutchA);
+        g_settings.HUD.Wheel.PedalClutchR, g_settings.HUD.Wheel.PedalClutchG, g_settings.HUD.Wheel.PedalClutchB, g_settings.HUD.Wheel.PedalClutchA, 0);
 }
 
 std::vector<Vector3> GetWheelCoords(Vehicle handle) {
@@ -526,10 +570,12 @@ void drawVehicleWheelInfo() {
     auto wheelsHealt = g_ext.GetWheelHealths(g_playerVehicle);
     auto wheelsContactCoords = g_ext.GetWheelLastContactCoords(g_playerVehicle);
     auto wheelsOnGround = g_ext.GetWheelsOnGround(g_playerVehicle);
-    // TODO: Here
+
     auto wheelCoords = GetWheelCoords(g_playerVehicle);
     auto wheelsPower = g_ext.GetWheelPower(g_playerVehicle);
     auto wheelsBrake = g_ext.GetWheelBrakePressure(g_playerVehicle);
+    auto wheelDims = g_ext.GetWheelDimensions(g_playerVehicle);
+
     for (int i = 0; i < numWheels; i++) {
         Util::ColorI color = Util::ColorsI::TransparentGray;
         if (g_vehData.mWheelsTcs[i]) {
@@ -547,6 +593,11 @@ void drawVehicleWheelInfo() {
         if (!wheelsOnGround[i]) {
             color = Util::ColorI{ 0, 0, 0, 0 };
         }
+
+        // The heck were tyre guys thinking mixing metric and imperial units?
+        float tyreAr = 100.0f * ((wheelDims[i].TyreRadius - wheelDims[i].RimRadius) / wheelDims[i].TyreWidth);
+        float rimSize = 2.0f * wheelDims[i].RimRadius * 39.3701f; // inches
+
         showDebugInfo3D(wheelCoords[i], {
                 fmt::format("[{}] {}Powered", i, g_ext.IsWheelPowered(g_playerVehicle, i) ? "~g~" : "~r~"),
                 fmt::format("Speed: \t{:.3f}", wheelsSpeed[i]),
@@ -554,6 +605,7 @@ void drawVehicleWheelInfo() {
                 //fmt::format("Health: \t{:.3f}", wheelsHealt[i]),
                 fmt::format("Power: \t{:.3f}", wheelsPower[i]),
                 fmt::format("Brake: \t{:.3f}", wheelsBrake[i]),
+                fmt::format("Tyre: {:.0f}/{:.0f}R{:.0f}", wheelDims[i].TyreWidth * 1000.0f, tyreAr, rimSize),
                 fmt::format("{}ABS~w~ | {}TCS~w~ | {}ESC{}",
                     g_vehData.mWheelsAbs[i] ? "~r~" : "",
                     g_vehData.mWheelsTcs[i] ? "~r~" : "",

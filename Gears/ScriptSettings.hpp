@@ -7,6 +7,16 @@
 #include <vector>
 #include <string>
 
+// oh god why
+#define APPLY_CONFIG_VALUE(option, value) \
+    if (g_settings.MTOptions.Override && g_activeConfig != nullptr) { \
+        g_activeConfig->option = (value);                             \
+        g_settings.SetVehicleConfig(g_activeConfig);                  \
+    }                                                                 \
+    else {                                                            \
+        g_settings.option = (value);                                  \
+    }
+
 class VehicleConfig;
 
 enum class EShiftMode : int {
@@ -62,11 +72,13 @@ public:
         float EngBrakeThreshold = 0.75f;
         // Clutch _lift_ distance
         float ClutchThreshold = 0.15f;
-        // Clutch _lift_ distance
-        float StallingThreshold = 0.35f;
-        float StallingRPM = 0.1f;
+        float StallingRPM = 0.09f;
+        float StallingRate = 3.75f;
+        float StallingSlip = 0.40f;
         float RPMDamage = 0.1f;
         float MisshiftDamage = 5.0f;
+        float CreepIdleThrottle = 0.1f;
+        float CreepIdleRPM = 0.1f;
     } MTParams;
 
     // [GAMEPLAY_ASSISTS]
@@ -76,8 +88,9 @@ public:
         bool AutoGear1 = false;
         bool AutoLookBack = false;
         bool ThrottleStart = false;
-        bool HidePlayerInFPV = false;
         bool DefaultNeutral = true;
+        bool DisableAutostart = false;
+        bool LeaveEngineRunning = false;
     } GameAssists;
 
     // [DRIVING_ASSISTS]
@@ -103,7 +116,7 @@ public:
             float OverMax = 15.0f; // deg
 
             float OverMinComp = 0.0f; // brake mult
-            float OverMaxComp = 2.0f; // brake mult
+            float OverMaxComp = 1.0f; // brake mult
 
             float UnderMin = 5.0f; // deg
             float UnderMax = 10.0f; // deg
@@ -112,6 +125,11 @@ public:
             float UnderMaxComp = 1.0f; // brake mult
 
         } ESP;
+
+        struct {
+            bool Enable = false;
+            float Viscosity = 10.0f;
+        } LSD;
     } DriveAssists;
 
     // [SHIFT_OPTIONS]
@@ -125,7 +143,7 @@ public:
     // [AUTO_PARAMS]
     struct {
         // Lower = upshift later
-        float UpshiftLoad = 0.05f;
+        float UpshiftLoad = 0.12f;
         // Higher = downshift later
         float DownshiftLoad = 0.60f;
         // Don't upshift until next gears' RPM is over this value.
@@ -148,12 +166,14 @@ public:
         // In Degrees
         float CountersteerLimit = 15.0f;
         float SteeringMult = 1.0f;
-        float SteeringReduction = 1.0f;
+        float SteeringReduction = 0.9f;
         float Gamma = 1.0f;
-        bool CustomRotation = false;
-        float CustomRotationDegrees = 900.0f;
-        float CenterTime = 0.000001f;
-        float SteerTime = 0.0001f;
+        bool CustomRotation = true;
+        float CustomRotationDegrees = 720.0f;
+        float CenterTime = 0.000100f;
+        float SteerTime = 0.001000f;
+        bool MouseSteering = true;
+        float MouseSensitivity = 0.5f;
     } CustomSteering;
 
     // [HUD]
@@ -279,6 +299,25 @@ public:
             float YPos = 0.035f;
             float Size = 1.000f;
         } DashIndicators;
+
+        struct {
+            bool Enable = false;
+            float XPos = 0.5f;
+            float YPos = 0.95f;
+            float XSz = 0.5f;
+            float YSz = 0.05f;
+            float MarkerXSz = 0.020f;
+
+            int BgR = 0;
+            int BgG = 0;
+            int BgB = 0;
+            int BgA = 128;
+
+            int FgR = 255;
+            int FgG = 255;
+            int FgB = 255;
+            int FgA = 255;
+        } MouseSteering;
     } HUD;
 
     // [CONTROLLER]
@@ -289,8 +328,8 @@ public:
 
         bool ToggleEngine = false;
 
-        bool BlockCarControls = false;
-        bool IgnoreShiftsUI = false;
+        bool BlockCarControls = true;
+        bool IgnoreShiftsUI = true;
         bool BlockHShift = true;
 
         //long ShiftUpBlocks = -1;
@@ -310,6 +349,34 @@ public:
         bool UDPTelemetry = true;
         bool DashExtensions = true;
         bool SyncAnimations = true;
+        struct {
+            bool Enable = true;
+            int AttachId = 0; // 0: Head, 1: Vehicle, 2: FPV Offset?
+            bool RemoveHead = true;
+            bool FollowMovement = true;
+            float MovementMultVel = 0.750f;
+            float MovementMultRot = 0.15f;
+            float MovementCap = 45.0f;
+            float FOV = 55.0f;
+            float OffsetHeight = 0.04f;
+            float OffsetForward = 0.05f;
+            float OffsetSide = 0.0f;
+            float Pitch = 0.0f;
+            float LookTime = 0.000010f;
+            float MouseLookTime = 0.000001f;
+            int MouseCenterTimeout = 750;
+            float MouseSensitivity = 0.3f;
+            struct {
+                bool Disable = false;
+                int AttachId = 0; // 0: Head, 1: Vehicle, 2: FPV Offset?
+                float FOV = 55.0f;
+                float OffsetHeight = -0.05f;
+                float OffsetForward = -0.08f;
+                float OffsetSide = 0.0f;
+                float Pitch = -11.0f;
+            } Bike;
+        } Camera;
+        bool HidePlayerInFPV = false;
     } Misc;
 
     // [UPDATE]
@@ -367,17 +434,17 @@ public:
         struct {
             bool Enable = true;
             bool Scale = true;
-            int AntiDeadForce = 0;
-            float SATAmpMult = 1.0f;
+            int AntiDeadForce = 1600;
+            float SATAmpMult = 1.25f;
             int SATMax = 10000;
-            float SATFactor = 0.66f;
-            int DamperMax = 50;
-            int DamperMin = 10;
-            float DamperMinSpeed = 1.2f; // TargetSpeed in m/s
-            float DetailMult = 2.5f;
-            int DetailLim = 20000;
-            int DetailMAW = 1;
-            float CollisionMult = 1.0f;
+            float SATFactor = 0.75f;
+            int DamperMax = 100;
+            int DamperMin = 40;
+            float DamperMinSpeed = 6.4f; // TargetSpeed in m/s
+            float DetailMult = 4.0f;
+            int DetailLim = 5000;
+            int DetailMAW = 3;
+            float CollisionMult = 2.5f;
             float Gamma = 0.8f;
             float MaxSpeed = 80.0f;
         } FFB;
@@ -436,7 +503,6 @@ public:
 
     void SteeringSaveAxis(const std::string &confTag, ptrdiff_t index, const std::string &axis, int minVal, int maxVal);
     void SteeringSaveButton(const std::string &confTag, ptrdiff_t index, int button);
-    void SteeringSaveHShifter(const std::string &confTag, ptrdiff_t index, const std::vector<int>& button);
     void KeyboardSaveKey(const std::string &confTag, const std::string &key);
     void ControllerSaveButton(const std::string &confTag, const std::string &button);
     void LControllerSaveButton(const std::string & confTag, int button);

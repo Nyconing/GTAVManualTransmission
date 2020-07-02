@@ -6,12 +6,31 @@
 #include "Memory/Versions.h"
 #include "Util/MathExt.h"
 
-
 #include "ScriptSettings.hpp"
+
+using VExt = VehicleExtensions;
 extern ScriptSettings g_settings;
 
-VehicleData::VehicleData(VehicleExtensions& ext)
-    : mVehicle(0), mExt(ext), mHandlingPtr(0)
+namespace {
+    bool GetIsRhd(Vehicle v) {
+        Vector3 driverSeatPos = 
+            ENTITY::GET_WORLD_POSITION_OF_ENTITY_BONE(v, ENTITY::GET_ENTITY_BONE_INDEX_BY_NAME(v, "seat_dside_f"));
+        Vector3 driverSeatPosRel = ENTITY::GET_OFFSET_FROM_ENTITY_GIVEN_WORLD_COORDS(v,
+            driverSeatPos.x, driverSeatPos.y, driverSeatPos.z);
+
+        //Vector3 dimMin, dimMax;
+        //MISC::GET_MODEL_DIMENSIONS(ENTITY::GET_ENTITY_MODEL(v), &dimMin, &dimMax);
+
+        if (driverSeatPosRel.x > 0.01f && 
+            sgn(driverSeatPosRel.x) == sgn(1.0f)) {
+            return true;
+        }
+        return false;
+    }
+}
+
+VehicleData::VehicleData()
+    : mVehicle(0), mHandlingPtr(0)
     , mVelocity(), mAcceleration(), mRPM(0), mRPMPrev(0)
     , mClutch(0), mThrottle(0), mTurbo(0), mHandbrake(false)
     , mSteeringInput(0), mSteeringAngle(0), mSteeringMult(0)
@@ -22,27 +41,28 @@ VehicleData::VehicleData(VehicleExtensions& ext)
     , mHandlingFlags(0), mModelFlags(0)
     , mIsElectric(false), mIsCVT(false), mHasClutch(false)
     , mHasABS(false), mABSType()
-    , mClass(), mDomain(), mIsAmphibious(false)
+    , mClass(), mDomain(), mIsAmphibious(false), mIsRhd(false)
     , mPrevVelocity() {}
 
 void VehicleData::SetVehicle(Vehicle v) {
     mVehicle = v;
     if (ENTITY::DOES_ENTITY_EXIST(mVehicle)) {
-        mHandlingPtr = mExt.GetHandlingPtr(mVehicle);
+        mHandlingPtr = VExt::GetHandlingPtr(mVehicle);
 
         mClass = findClass(ENTITY::GET_ENTITY_MODEL(mVehicle));
         mDomain = findDomain(mClass);
-        auto type = mExt.GetModelType(mVehicle);
+        auto type = VExt::GetModelType(mVehicle);
         mIsAmphibious = (type == 6 || type == 7);
         mHasSpeedo = false;
+        mIsRhd = GetIsRhd(v);
 
         // initialize prev's init state
         mVelocity = ENTITY::GET_ENTITY_SPEED_VECTOR(mVehicle, true);
         mRPM = VEHICLE::GET_IS_VEHICLE_ENGINE_RUNNING(mVehicle) ?
-            mExt.GetCurrentRPM(mVehicle) : 0.01f;
-        mSuspensionTravel = mExt.GetWheelCompressions(mVehicle);
+            VExt::GetCurrentRPM(mVehicle) : 0.01f;
+        mSuspensionTravel = VExt::GetWheelCompressions(mVehicle);
 
-        mFlags = mExt.GetVehicleFlags(mVehicle);
+        mFlags = VExt::GetVehicleFlags(mVehicle);
 
         extern eGameVersion g_gameVersion;
         if (g_gameVersion >= G_VER_1_0_1604_0_STEAM) {
@@ -60,10 +80,10 @@ void VehicleData::SetVehicle(Vehicle v) {
 
         mHasABS = getABSType(mModelFlags) != ABSType::ABS_NONE;
         mABSType = getABSType(mModelFlags);
-        mWheelsTcs.resize(mExt.GetNumWheels(mVehicle));
-        mWheelsAbs.resize(mExt.GetNumWheels(mVehicle));
-        mWheelsEspO.resize(mExt.GetNumWheels(mVehicle));
-        mWheelsEspU.resize(mExt.GetNumWheels(mVehicle));
+        mWheelsTcs.resize(VExt::GetNumWheels(mVehicle));
+        mWheelsAbs.resize(VExt::GetNumWheels(mVehicle));
+        mWheelsEspO.resize(VExt::GetNumWheels(mVehicle));
+        mWheelsEspU.resize(VExt::GetNumWheels(mVehicle));
         mSuspensionTravelSpeedsHistory.clear();
         Update();
     }
@@ -81,34 +101,34 @@ void VehicleData::Update() {
     // Get current values
     mVelocity = ENTITY::GET_ENTITY_SPEED_VECTOR(mVehicle, true);
     mRPM = VEHICLE::GET_IS_VEHICLE_ENGINE_RUNNING(mVehicle) ?
-        mExt.GetCurrentRPM(mVehicle) : 0.01f;
-    mClutch = mExt.GetClutch(mVehicle);
-    mThrottle = mExt.GetThrottle(mVehicle);
-    mTurbo = mExt.GetTurbo(mVehicle);
-    mHandbrake = mExt.GetHandbrake(mVehicle);
+        VExt::GetCurrentRPM(mVehicle) : 0.01f;
+    mClutch = VExt::GetClutch(mVehicle);
+    mThrottle = VExt::GetThrottle(mVehicle);
+    mTurbo = VExt::GetTurbo(mVehicle);
+    mHandbrake = VExt::GetHandbrake(mVehicle);
 
-    mSteeringInput = mExt.GetSteeringInputAngle(mVehicle);
-    mSteeringAngle = mExt.GetSteeringAngle(mVehicle);
-    mSteeringMult = mExt.GetSteeringMultiplier(mVehicle);
+    mSteeringInput = VExt::GetSteeringInputAngle(mVehicle);
+    mSteeringAngle = VExt::GetSteeringAngle(mVehicle);
+    mSteeringMult = VExt::GetSteeringMultiplier(mVehicle);
 
-    mGearCurr = static_cast<uint8_t>(mExt.GetGearCurr(mVehicle));
-    mGearNext = static_cast<uint8_t>(mExt.GetGearNext(mVehicle));
-    mGearTop = mExt.GetTopGear(mVehicle);
-    mGearRatios = mExt.GetGearRatios(mVehicle);
+    mGearCurr = static_cast<uint8_t>(VExt::GetGearCurr(mVehicle));
+    mGearNext = static_cast<uint8_t>(VExt::GetGearNext(mVehicle));
+    mGearTop = VExt::GetTopGear(mVehicle);
+    mGearRatios = VExt::GetGearRatios(mVehicle);
 
-    mDriveMaxFlatVel = mExt.GetDriveMaxFlatVel(mVehicle);
-    mInitialDriveMaxFlatVel = mExt.GetInitialDriveMaxFlatVel(mVehicle);
+    mDriveMaxFlatVel = VExt::GetDriveMaxFlatVel(mVehicle);
+    mInitialDriveMaxFlatVel = VExt::GetInitialDriveMaxFlatVel(mVehicle);
 
-    mWheelCount = mExt.GetNumWheels(mVehicle);
-    mWheelTyreSpeeds = mExt.GetTyreSpeeds(mVehicle);
+    mWheelCount = VExt::GetNumWheels(mVehicle);
+    mWheelTyreSpeeds = VExt::GetTyreSpeeds(mVehicle);
 
-    mWheelsOnGround = mExt.GetWheelsOnGround(mVehicle);
-    mWheelSteeringAngles = mExt.GetWheelSteeringAngles(mVehicle);
+    mWheelsOnGround = VExt::GetWheelsOnGround(mVehicle);
+    mWheelSteeringAngles = VExt::GetWheelSteeringAngles(mVehicle);
 
-    mSuspensionTravel = mExt.GetWheelCompressions(mVehicle);
-    mBrakePressures = mExt.GetWheelBrakePressure(mVehicle);
+    mSuspensionTravel = VExt::GetWheelCompressions(mVehicle);
+    mBrakePressures = VExt::GetWheelBrakePressure(mVehicle);
 
-    if (!mHasSpeedo && mExt.GetDashSpeed(mVehicle) > 0.0f) {
+    if (!mHasSpeedo && VExt::GetDashSpeed(mVehicle) > 0.0f) {
         mHasSpeedo = true;
     }
 
@@ -142,7 +162,7 @@ std::vector<bool> VehicleData::getDrivenWheels() {
     std::vector<bool> wheelsToConsider;
     wheelsToConsider.reserve(mWheelCount);
     for (int i = 0; i < mWheelCount; i++)
-        wheelsToConsider.push_back(mExt.IsWheelPowered(mVehicle, i));
+        wheelsToConsider.push_back(VExt::IsWheelPowered(mVehicle, i));
 
     return wheelsToConsider;
 }
@@ -162,7 +182,7 @@ float VehicleData::getAverageDrivenWheelTyreSpeeds() {
 
 std::vector<bool> VehicleData::getWheelsLockedUp() {
     std::vector<bool> lockups;
-    auto wheelsSpeed = mExt.GetWheelRotationSpeeds(mVehicle);
+    auto wheelsSpeed = VExt::GetWheelRotationSpeeds(mVehicle);
     for (auto wheelSpeed : wheelsSpeed) {
         if (abs(mVelocity.y) > 0.01f && wheelSpeed == 0.0f)
             lockups.push_back(true);
@@ -176,7 +196,7 @@ std::vector<float> VehicleData::getSuspensionTravelSpeeds() {
     std::vector<float> suspensionTravelSpeeds(mWheelCount);
     for (size_t i = 0; i < mWheelCount; ++i) {
         suspensionTravelSpeeds[i] =
-            (mSuspensionTravel[i] - mPrevSuspensionTravel[i]) / GAMEPLAY::GET_FRAME_TIME();
+            (mSuspensionTravel[i] - mPrevSuspensionTravel[i]) / MISC::GET_FRAME_TIME();
     }
     return suspensionTravelSpeeds;
 }
@@ -184,9 +204,9 @@ std::vector<float> VehicleData::getSuspensionTravelSpeeds() {
 Vector3 VehicleData::getAcceleration() {
     Vector3 acceleration{};
 
-    acceleration.x = (mVelocity.x - mPrevVelocity.x) / GAMEPLAY::GET_FRAME_TIME();
-    acceleration.y = (mVelocity.y - mPrevVelocity.y) / GAMEPLAY::GET_FRAME_TIME();
-    acceleration.z = (mVelocity.z - mPrevVelocity.z) / GAMEPLAY::GET_FRAME_TIME();
+    acceleration.x = (mVelocity.x - mPrevVelocity.x) / MISC::GET_FRAME_TIME();
+    acceleration.y = (mVelocity.y - mPrevVelocity.y) / MISC::GET_FRAME_TIME();
+    acceleration.z = (mVelocity.z - mPrevVelocity.z) / MISC::GET_FRAME_TIME();
 
     return acceleration;
 }

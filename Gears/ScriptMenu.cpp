@@ -15,6 +15,7 @@
 #include "ScriptUtils.h"
 #include "VehicleConfig.h"
 #include "SteeringAnim.h"
+#include "Camera.h"
 
 #include <menu.h>
 #include <menukeyboard.h>
@@ -27,6 +28,10 @@
 #include <shellapi.h>
 #include <string>
 #include <mutex>
+
+#include "Compatibility.h"
+
+using VExt = VehicleExtensions;
 
 extern ReleaseInfo g_releaseInfo;
 extern std::mutex g_releaseInfoMutex;
@@ -130,29 +135,34 @@ namespace {
         "None"
     };
 
+    std::vector<std::string> camAttachPoints {
+        "Player head",
+        "Vehicle",
+        "Vanilla FPV"
+    };
+
     bool getKbEntry(float& val) {
         UI::Notify(INFO, "Enter value");
-        GAMEPLAY::DISPLAY_ONSCREEN_KEYBOARD(UNK::_GET_CURRENT_LANGUAGE_ID() == 0, "FMMC_KEY_TIP8", "",
+        MISC::DISPLAY_ONSCREEN_KEYBOARD(LOCALIZATION::GET_CURRENT_LANGUAGE() == 0, "FMMC_KEY_TIP8", "",
             fmt::format("{:f}", val).c_str(), "", "", "", 64);
-        while (GAMEPLAY::UPDATE_ONSCREEN_KEYBOARD() == 0) {
+        while (MISC::UPDATE_ONSCREEN_KEYBOARD() == 0) {
             WAIT(0);
         }
-        if (!GAMEPLAY::GET_ONSCREEN_KEYBOARD_RESULT()) {
+        if (!MISC::GET_ONSCREEN_KEYBOARD_RESULT()) {
             UI::Notify(INFO, "Cancelled value entry");
             return false;
         }
 
-        std::string floatStr = GAMEPLAY::GET_ONSCREEN_KEYBOARD_RESULT();
+        std::string floatStr = MISC::GET_ONSCREEN_KEYBOARD_RESULT();
         if (floatStr.empty()) {
             UI::Notify(INFO, "Cancelled value entry");
             return false;
         }
 
-        float parsedValue;
-        try {
-            parsedValue = std::stof(floatStr, nullptr);
-        }
-        catch (std::invalid_argument&) {
+        char* pEnd;
+        float parsedValue = strtof(floatStr.c_str(), &pEnd);
+
+        if (parsedValue == 0.0f && *pEnd != 0) {
             UI::Notify(INFO, "Failed to parse entry.");
             return false;
         }
@@ -160,6 +170,8 @@ namespace {
         val = parsedValue;
         return true;
     }
+
+    std::vector<std::string> diDevicesInfo { "Press Enter to refresh." };
 }
 
 int getBlockableControlIndex(int control) {
@@ -230,10 +242,10 @@ void update_mainmenu() {
                     g_notifyUpdate = false;
                     saveChanges();
                     }, nullptr, "Update info",
-                    { "Press accept to check GTA5-Mods.com.",
-                        "Press right to ignore current update." })) {
+                    { "Press Select/Enter to check GTA5-Mods.com.",
+                        "Press right to ignore the current update." })) {
                     WAIT(20);
-                    CONTROLS::_SET_CONTROL_NORMAL(0, ControlFrontendPause, 1.0f);
+                    PAD::_SET_CONTROL_NORMAL(0, ControlFrontendPause, 1.0f);
                     ShellExecuteA(0, 0, modUrl.c_str(), 0, 0, SW_SHOW);
                 }
             }
@@ -275,10 +287,13 @@ void update_mainmenu() {
     g_menu.MenuOption("Gameplay assists", "gameassistmenu",
         { "Assist to make playing a bit easier." });
 
+    g_menu.MenuOption("Misc options", "miscoptionsmenu",
+        { "Various features that don't fit in the other categories." });
+
     g_menu.MenuOption("HUD options", "hudmenu",
         { "Change and move HUD elements." });
 
-    g_menu.MenuOption("Extra settings", "extrasettingsmenu", 
+    g_menu.MenuOption("Developer options", "devoptionsmenu", 
         { "Various settings for debugging, compatibility, etc." });
 
     if (g_settings.Debug.DisableInputDetect) {
@@ -378,12 +393,15 @@ void update_finetuneoptionsmenu() {
     g_menu.Subtitle("");
 
     g_menu.FloatOption("Clutch bite threshold", g_settings.MTParams.ClutchThreshold, 0.0f, 1.0f, 0.05f,
-        { "How far the clutch has to be lifted to start biting. This value should be lower than \"Stalling threshold\"." });
-    g_menu.FloatOption("Stalling threshold", g_settings.MTParams.StallingThreshold, 0.0f, 1.0f, 0.05f,
-        { "How far the clutch has to be lifted to start stalling. This value should be higher than \"Clutch bite point\"." });
+        { "How far the clutch has to be lifted to start biting." });
     g_menu.FloatOption("Stalling RPM", g_settings.MTParams.StallingRPM, 0.0f, 0.2f, 0.01f,
-        { "Consider stalling when the expected RPM drops below this number.",
-          "The range is 0.0 to 0.2. The engine idles at 0.2, so 0.1 is a decent value." });
+        { "Consider stalling when the expected RPM drops below this value.",
+          "The range is 0.0 to 0.2. The engine idles at 0.2 in GTA.",
+          "Expected RPM is based on car speed and current gear ratio."});
+    g_menu.FloatOption("Stalling rate", g_settings.MTParams.StallingRate, 0.0f, 10.0f, 0.05f,
+        { "How quick the engine should stall. Higher values make it stall faster." });
+    g_menu.FloatOption("Stalling slip", g_settings.MTParams.StallingSlip, 0.0f, 1.0f, 0.05f,
+        { "How much the clutch may slip before the stalling rate picks up." });
 
     g_menu.FloatOption("RPM damage", g_settings.MTParams.RPMDamage, 0.0f, 10.0f, 0.05f,
         { "Damage from redlining too long." });
@@ -393,6 +411,13 @@ void update_finetuneoptionsmenu() {
         { "RPM where engine braking starts being effective." });
     g_menu.FloatOption("Engine braking power", g_settings.MTParams.EngBrakePower, 0.0f, 5.0f, 0.05f,
         { "Decrease this value if your wheels lock up when engine braking." });
+
+    // Clutch creep params
+    g_menu.FloatOption("Clutch creep idle RPM", g_settings.MTParams.CreepIdleRPM, 0.0f, 0.5f, 0.01f,
+        { "RPM at which the engine should be idling and the car wants to move by itself.",
+          "Engines in GTA idle at 0.2, but this is rather high."});
+    g_menu.FloatOption("Clutch creep throttle", g_settings.MTParams.CreepIdleThrottle, 0.0f, 1.0f, 0.01f,
+        { "How much throttle is given when the car speed drops below the idle RPM." });
 }
 
 void update_shiftingoptionsmenu() {
@@ -556,10 +581,6 @@ void update_controlsmenu() {
 
     g_menu.MenuOption("Steering assists", "steeringassistmenu",
         { "Customize steering input for keyboards and controllers." });
-
-    g_menu.BoolOption("Sync steering animation", g_settings.Misc.SyncAnimations,
-        { "Synchronize animations with wheel rotation using third-person animations.",
-          "Only active for synced steering wheel rotation or custom controller wheel rotation." });
 }
 
 void update_controllermenu() {
@@ -772,7 +793,7 @@ void update_wheelmenu() {
         "Active gear:"
     };
     if (g_controls.ButtonIn(CarControls::WheelControlType::HR)) hpatInfo.emplace_back("Reverse");
-    for (uint8_t gear = 1; gear < g_numGears; ++gear) {
+    for (uint8_t gear = 1; gear < VExt::GearsAvailable(); ++gear) {
         // H1 == 1
         if (g_controls.ButtonIn(static_cast<CarControls::WheelControlType>(gear))) 
             hpatInfo.emplace_back(fmt::format("Gear {}", gear));
@@ -867,17 +888,17 @@ std::vector<std::string> showGammaCurve(const std::string& axis, const float inp
 
     GRAPHICS::DRAW_RECT(rectX, rectY,
         rectW + 3.0f*blockW, rectH + 3.0f*blockH,
-        255, 255, 255, 191);
+        255, 255, 255, 191, 0);
     GRAPHICS::DRAW_RECT(rectX, rectY,
         rectW + blockW / 2.0f, rectH + blockH / 2.0f,
-        0, 0, 0, 239);
+        0, 0, 0, 239, 0);
 
     for (auto point : points) {
         float pointX = rectX - 0.5f*rectW + point.first *rectW;
         float pointY = rectY + 0.5f*rectH - point.second *rectH;
         GRAPHICS::DRAW_RECT(pointX, pointY,
             blockW, blockH,
-            255, 255, 255, 255);
+            255, 255, 255, 255, 0);
     }
 
     std::pair<float, float> currentPoint = { input, pow(input, gamma) };
@@ -885,7 +906,7 @@ std::vector<std::string> showGammaCurve(const std::string& axis, const float inp
     float pointY = rectY + 0.5f*rectH - currentPoint.second * rectH;
     GRAPHICS::DRAW_RECT(pointX, pointY,
         3.0f*blockW, 3.0f*blockH,
-        255, 0, 0, 255);
+        255, 0, 0, 255, 0);
 
     return info;
 }
@@ -1072,13 +1093,28 @@ void update_buttonsmenu() {
 
     std::vector<std::string> wheelToKeyInfo = {
         "Active wheel-to-key options:",
-        "Press RIGHT to clear a button",
+        "Press RIGHT to clear all keys bound to button",
         fmt::format("Device: {}", g_settings.GUIDToDeviceIndex(g_controls.WheelToKeyGUID))
     };
 
     for (int i = 0; i < MAX_RGBBUTTONS; i++) {
-        if (g_controls.WheelToKey[i] != -1) {
-            wheelToKeyInfo.push_back(fmt::format("{} = {}", i, key2str(g_controls.WheelToKey[i])));
+        if (g_controls.WheelToKey[i].empty())
+            continue;
+        
+        for (const auto& keyval : g_controls.WheelToKey[i]) {
+            wheelToKeyInfo.push_back(fmt::format("{} = {}", i, key2str(keyval)));
+            if (g_controls.GetWheel().IsButtonPressed(i, g_controls.WheelToKeyGUID)) {
+                wheelToKeyInfo.back() = fmt::format("{} (Pressed)", wheelToKeyInfo.back());
+            }
+        }
+    }
+
+    for (const auto w2kBindingPov : g_controls.WheelToKeyPov) {
+        if (w2kBindingPov.second.empty())
+            continue;
+        auto i = w2kBindingPov.first;
+        for (const auto& keyval : w2kBindingPov.second) {
+            wheelToKeyInfo.push_back(fmt::format("{} = {}", i, key2str(keyval)));
             if (g_controls.GetWheel().IsButtonPressed(i, g_controls.WheelToKeyGUID)) {
                 wheelToKeyInfo.back() = fmt::format("{} (Pressed)", wheelToKeyInfo.back());
             }
@@ -1171,10 +1207,11 @@ void update_hudmenu() {
 
     g_menu.MenuOption("Gear and shift mode", "geardisplaymenu");
     g_menu.MenuOption("Speedometer", "speedodisplaymenu");
-    g_menu.MenuOption("RPM Gauge", "rpmdisplaymenu");
-    g_menu.MenuOption("Wheel & Pedal Info", "wheelinfomenu");
+    g_menu.MenuOption("RPM gauge", "rpmdisplaymenu");
+    g_menu.MenuOption("Wheel & Pedal info", "wheelinfomenu");
     g_menu.MenuOption("Dashboard indicators", "dashindicatormenu", 
         { "Indicator icons for ABS, TCS, ESC and the hand brake." });
+    g_menu.MenuOption("Mouse steering", "mousehudmenu");
 }
 
 void update_geardisplaymenu() {
@@ -1296,6 +1333,29 @@ void update_dashindicatormenu() {
     g_menu.FloatOption("Size", g_settings.HUD.DashIndicators.Size, 0.25f, 4.0f, 0.05f);
 }
 
+void update_mousehudmenu() {
+    g_menu.Title("Mouse steering HUD options");
+    g_menu.Subtitle("");
+
+    g_menu.BoolOption("Enable", g_settings.HUD.MouseSteering.Enable);
+
+    g_menu.FloatOption("Pos X", g_settings.HUD.MouseSteering.XPos, 0.0f, 1.0f, 0.0025f);
+    g_menu.FloatOption("Pos Y", g_settings.HUD.MouseSteering.YPos, 0.0f, 1.0f, 0.0025f);
+    g_menu.FloatOption("Width", g_settings.HUD.MouseSteering.XSz, 0.0f, 1.0f, 0.0025f);
+    g_menu.FloatOption("Height", g_settings.HUD.MouseSteering.YSz, 0.0f, 1.0f, 0.0025f);
+    g_menu.FloatOption("Marker width", g_settings.HUD.MouseSteering.MarkerXSz, 0.0f, 1.0f, 0.0025f);
+
+    g_menu.IntOption("RPM Background Red  ", g_settings.HUD.MouseSteering.BgR, 0, 255);
+    g_menu.IntOption("RPM Background Green", g_settings.HUD.MouseSteering.BgG, 0, 255);
+    g_menu.IntOption("RPM Background Blue ", g_settings.HUD.MouseSteering.BgB, 0, 255);
+    g_menu.IntOption("RPM Background Alpha", g_settings.HUD.MouseSteering.BgA, 0, 255);
+
+    g_menu.IntOption("RPM Foreground Red  ", g_settings.HUD.MouseSteering.FgR, 0, 255);
+    g_menu.IntOption("RPM Foreground Green", g_settings.HUD.MouseSteering.FgG, 0, 255);
+    g_menu.IntOption("RPM Foreground Blue ", g_settings.HUD.MouseSteering.FgB, 0, 255);
+    g_menu.IntOption("RPM Foreground Alpha", g_settings.HUD.MouseSteering.FgA, 0, 255);
+}
+
 void update_driveassistmenu() {
     g_menu.Title("Driving assists");
     g_menu.Subtitle("");
@@ -1322,6 +1382,15 @@ void update_driveassistmenu() {
 
     g_menu.MenuOption("ESC settings", "espsettingsmenu", 
         { "Change the behaviour and tolerances of the stability control system." });
+
+    g_menu.BoolOption("Enable LSD", g_settings.DriveAssists.LSD.Enable,
+        { "Simulate a viscous limited slip differential. Credits to any333.",
+          "LSD simulation is overridden when ABS, ESC and TCS kick in."});
+
+    g_menu.FloatOption("LSD viscosity", g_settings.DriveAssists.LSD.Viscosity, 0.0f, 100.0f, 1.0f,
+        { "How much the slower wheel tries to match the faster wheel.",
+          "A very high value might speed up the car too much, because this LSD adds power to the slower wheel. "
+          "About 10 is decent and doesn't affect acceleration."});
 }
 
 void update_espsettingsmenu() {
@@ -1353,6 +1422,12 @@ void update_gameassistmenu() {
     g_menu.BoolOption("Default neutral gear", g_settings.GameAssists.DefaultNeutral,
         { "The car will be in neutral when you get in." });
 
+    g_menu.BoolOption("Disable autostart", g_settings.GameAssists.DisableAutostart,
+        { "The character will not start the vehicle when getting in." });
+
+    g_menu.BoolOption("Leave engine running", g_settings.GameAssists.LeaveEngineRunning,
+        { "The character will not turn the engine off when exiting the car, if you use a short press." });
+
     g_menu.BoolOption("Simplified bike", g_settings.GameAssists.SimpleBike,
         { "Disables bike engine stalling and the clutch bite simulation." });
 
@@ -1367,11 +1442,6 @@ void update_gameassistmenu() {
 
     g_menu.BoolOption("Clutch & throttle start", g_settings.GameAssists.ThrottleStart,
         { "Allow to start the engine by pressing clutch and throttle." });
-
-    if (g_menu.BoolOption("Hide player in FPV", g_settings.GameAssists.HidePlayerInFPV,
-        { "Hides the player in first person view." })) {
-        functionHidePlayerInFPV(true);
-    }
 }
 
 void update_steeringassistmenu() {
@@ -1417,10 +1487,177 @@ void update_steeringassistmenu() {
           "This is purely cosmetic and does not change handling." });
     g_menu.FloatOption("Wheel rotation", g_settings.CustomSteering.CustomRotationDegrees, 180.0f, 1440.0f, 30.0f, 
         { "Rotation in degrees." });
+
+    g_menu.BoolOption("Enable mouse steering", g_settings.CustomSteering.MouseSteering,
+        { "When enabled, hold the mouse steering override button to use mouse steering." });
+
+    g_menu.MenuOption("Mouse steering options", "mousesteeringoptionsmenu");
 }
 
-void update_extrasettingsmenu() {
-    g_menu.Title("Extra settings");
+void update_mousesteeringoptionsmenu() {
+    g_menu.Title("Mouse steering");
+    g_menu.Subtitle("");
+
+    g_menu.FloatOption("Mouse sensitivity", g_settings.CustomSteering.MouseSensitivity, 0.05f, 2.0f, 0.05f,
+        { "Sensitivity for mouse steering." });
+}
+
+void update_miscoptionsmenu() {
+    g_menu.Title("Misc options");
+    g_menu.Subtitle("");
+
+    if (SteeringAnimation::FileProblem()) {
+        g_menu.Option("Animation file error", NativeMenu::solidRed,
+            { "An error occurred reading the animation file. Check Gears.log for more details." });
+    }
+    else {
+        g_menu.BoolOption("Sync steering animation", g_settings.Misc.SyncAnimations,
+            { "Synchronize animations with wheel rotation using third-person animations.",
+              "Only active for synced steering wheel rotation or custom controller wheel rotation.",
+              "FPV camera angle is limited, consider enabling the custom FPV camera.",
+              "Check animations.yml for more details!" });
+    }
+
+    g_menu.BoolOption("Enable custom FPV camera", g_settings.Misc.Camera.Enable,
+        { "Camera mounted to the player head." });
+
+    g_menu.MenuOption("Camera options", "cameraoptionsmenu",
+        { "Adjust the custom FPV camera" });
+
+    if (g_menu.BoolOption("Hide player in FPV", g_settings.Misc.HidePlayerInFPV,
+        { "Hides the player in first person view.",
+          "If you use another script that does the same, "
+            "enable [Disable Player Hiding] in dev settings."})) {
+        functionHidePlayerInFPV(true);
+    }
+
+    g_menu.BoolOption("Enable dashboard extensions", g_settings.Misc.DashExtensions,
+        { "If DashHook is installed, the script controls some dashboard lights such as the ABS light." });
+
+    if (g_menu.BoolOption("Enable UDP telemetry", g_settings.Misc.UDPTelemetry,
+        { "Allows programs like SimHub to use data from this script."
+            "This script uses DIRT 4 format for telemetry data." })) {
+        StartUDPTelemetry();
+    }
+}
+
+void update_cameraoptionsmenu() {
+    g_menu.Title("Camera options");
+    g_menu.Subtitle("");
+
+    std::string camInfo;
+
+    switch(g_settings.Misc.Camera.AttachId) {
+        case 0:
+            camInfo = "Camera moves with character while steering.";
+            break;
+        case 1:
+            camInfo = "Camera is static with vehicle. You need to be stopped and not steering, "
+                        "for the camera to get centered properly.";
+            break;
+        case 2:
+            camInfo = "Camera is static with vehicle and uses vanilla FPV camera offsets.";
+            break;
+        default:
+            camInfo = "Invalid selection";
+            break;
+    }
+
+    if (g_menu.StringArray("Attach to", camAttachPoints, g_settings.Misc.Camera.AttachId, 
+        { camInfo })) {
+        FPVCam::CancelCam(); // it'll re-acquire next tick with the correct position.
+    }
+
+    g_menu.MenuOption("Motorcycle camera options", "bikecameraoptionsmenu",
+        { "The FPV camera for 2-wheelers, quads and every between behaves differently,"
+            "so these have their own options." });
+
+    if (Dismemberment::Available()) {
+        if (g_menu.BoolOption("Hide head", g_settings.Misc.Camera.RemoveHead,
+            { "Using DismembermentASI by CamxxCore from Jedijosh' dismemberment mod, "
+              "the player head can be hidden. This also turns on better near clipping." })) {
+            FPVCam::HideHead(g_settings.Misc.Camera.RemoveHead);
+        }
+    }
+    else {
+        if (g_menu.Option("Hide head (download needed)", NativeMenu::solidRed,
+            { "Press Select/Enter to open Dismemberment on GTA5-Mods.com.",
+              "DismembermentASI.asi by CamxxCore from Jedijosh' dismemberment mod is "
+              "needed to hide the player head." })) {
+            WAIT(20);
+            PAD::_SET_CONTROL_NORMAL(0, ControlFrontendPause, 1.0f);
+            ShellExecuteA(0, 0, "https://www.gta5-mods.com/scripts/dismemberment", 0, 0, SW_SHOW);
+        }
+    }
+
+    g_menu.BoolOption("Follow movement", g_settings.Misc.Camera.FollowMovement,
+        { "Camera moves with motion and rotation, somewhat like NFS Shift." });
+
+    g_menu.FloatOption("Motion multiplier", g_settings.Misc.Camera.MovementMultVel, 0.0f, 4.0f, 0.01f,
+        { "How much the direction of travel affects the camera." });
+
+    g_menu.FloatOption("Rotation movement", g_settings.Misc.Camera.MovementMultRot, 0.0f, 4.0f, 0.01f,
+        { "How much the rotation speed affects the camera." });
+
+    g_menu.FloatOption("Movement cap", g_settings.Misc.Camera.MovementCap, 0.0f, 90.0f, 1.0f,
+        { "To how many degrees camera movement is capped." });
+
+    g_menu.FloatOptionCb("Field of view", g_settings.Misc.Camera.FOV, 1.0f, 120.0f, 0.5f, getKbEntry, 
+        { "In degrees." });
+
+    g_menu.FloatOptionCb("Offset height", g_settings.Misc.Camera.OffsetHeight, -2.0f, 2.0f, 0.01f, getKbEntry,
+        { "Distance in meters." });
+
+    g_menu.FloatOptionCb("Offset forward", g_settings.Misc.Camera.OffsetForward, -2.0f, 2.0f, 0.01f, getKbEntry,
+        { "Distance in meters." });
+
+    g_menu.FloatOptionCb("Offset side", g_settings.Misc.Camera.OffsetSide, -2.0f, 2.0f, 0.01f, getKbEntry,
+        { "Distance in meters." });
+
+    g_menu.FloatOption("Pitch", g_settings.Misc.Camera.Pitch, -20.0f, 20.0f, 0.1f,
+        { "In degrees." });
+
+    g_menu.FloatOptionCb("Controller smoothing", g_settings.Misc.Camera.LookTime, 0.0f, 0.5f, 0.000001f, getKbEntry,
+        { "How smooth the camera moves.", "Press enter to enter a value manually. Range: 0.0 to 0.5." });
+
+    g_menu.FloatOption("Mouse sensitivity", g_settings.Misc.Camera.MouseSensitivity, 0.05f, 2.0f, 0.05f);
+
+    g_menu.FloatOptionCb("Mouse smoothing", g_settings.Misc.Camera.MouseLookTime, 0.0f, 0.5f, 0.000001f, getKbEntry,
+        { "How smooth the camera moves.", "Press enter to enter a value manually. Range: 0.0 to 0.5." });
+
+    g_menu.IntOption("Mouse center timeout", g_settings.Misc.Camera.MouseCenterTimeout, 0, 2000, 25,
+        { "Milliseconds before centering the camera after looking with the mouse." });
+}
+
+void update_bikecameraoptionsmenu() {
+    g_menu.Title("Camera options");
+    g_menu.Subtitle("2-wheelers - Quads");
+
+    g_menu.BoolOption("Disable for 2-ish wheelers", g_settings.Misc.Camera.Bike.Disable,
+        { "Use the the vanilla FPV camera on these vehicles." });
+
+    if (g_menu.StringArray("Attach to", camAttachPoints, g_settings.Misc.Camera.Bike.AttachId)) {
+        FPVCam::CancelCam();
+    }
+
+    g_menu.FloatOptionCb("Field of view", g_settings.Misc.Camera.Bike.FOV, 1.0f, 120.0f, 0.5f, getKbEntry,
+        { "In degrees." });
+
+    g_menu.FloatOptionCb("Offset height", g_settings.Misc.Camera.Bike.OffsetHeight, -2.0f, 2.0f, 0.01f, getKbEntry,
+        { "Distance in meters." });
+
+    g_menu.FloatOptionCb("Offset forward", g_settings.Misc.Camera.Bike.OffsetForward, -2.0f, 2.0f, 0.01f, getKbEntry,
+        { "Distance in meters." });
+
+    g_menu.FloatOptionCb("Offset side", g_settings.Misc.Camera.Bike.OffsetSide, -2.0f, 2.0f, 0.01f, getKbEntry,
+        { "Distance in meters." });
+
+    g_menu.FloatOption("Pitch", g_settings.Misc.Camera.Bike.Pitch, -20.0f, 20.0f, 0.1f,
+        { "In degrees." });
+}
+
+void update_devoptionsmenu() {
+    g_menu.Title("Developer options");
     g_menu.Subtitle("");
 
     g_menu.MenuOption("Debug settings", "debugmenu");
@@ -1430,8 +1667,6 @@ void update_extrasettingsmenu() {
 
     g_menu.MenuOption("Performance settings", "perfmenu",
         { "Every tick AI is also updated, which might impact performance." });
-
-    g_menu.MenuOption("Compatibility settings", "compatmenu");
 
     g_menu.BoolOption("Disable input detection", g_settings.Debug.DisableInputDetect,
         { "Allows for manual input selection." });
@@ -1468,68 +1703,111 @@ void update_debugmenu() {
     g_menu.BoolOption("Show NPC info", g_settings.Debug.DisplayNPCInfo,
         { "Show vehicle info of NPC vehicles near you." });
 
-    std::vector <std::string> extras;
+    if (SteeringAnimation::FileProblem()) {
+        g_menu.Option("Animation file error", NativeMenu::solidRed, 
+            { "An error occurred reading the animation file. Check Gears.log for more details." });
+    }
+    else {
+        std::vector <std::string> extras;
 
-    extras.emplace_back("Available animation dictionaries:");
+        extras.emplace_back("Available animation dictionaries:");
 
-    const auto& anims = SteeringAnimation::GetAnimations();
-    const size_t index = SteeringAnimation::GetAnimationIndex();
-    for (size_t i = 0; i < anims.size(); ++i) {
-        const auto& anim = anims[i];
-        std::string mark = "[ ]";
-        if (i == index) {
-            mark = "[*]";
+        const auto& anims = SteeringAnimation::GetAnimations();
+        const size_t index = SteeringAnimation::GetAnimationIndex();
+        for (size_t i = 0; i < anims.size(); ++i) {
+            const auto& anim = anims[i];
+            std::string mark = "[ ]";
+            if (i == index) {
+                mark = "[*]";
+            }
+            extras.emplace_back(fmt::format("{} {}", mark, anim.Dictionary));
         }
-        extras.emplace_back(fmt::format("{} {}", mark, anim.Dictionary));
+
+        extras.emplace_back("");
+        extras.emplace_back("* marks active dictionary.");
+        if (index >= SteeringAnimation::GetAnimations().size()) {
+            extras.push_back(fmt::format("Index out of range ({})", index));
+        }
+
+        extras.emplace_back("");
+        extras.emplace_back("Press left/right to change animation manually.");
+
+        std::function<void()> onLeft = [index, anims]() {
+            if (!anims.empty()) {
+                if (index == 0) {
+                    // Set to "none"
+                    SteeringAnimation::SetAnimationIndex(anims.size());
+                }
+                else {
+                    SteeringAnimation::SetAnimationIndex(index - 1);
+                }
+            }
+        };
+
+        std::function<void()> onRight = [index, anims]() {
+            if (!anims.empty()) {
+                // allow 1 past, to set to none
+                if (index >= anims.size()) {
+                    SteeringAnimation::SetAnimationIndex(0);
+                }
+                else {
+                    SteeringAnimation::SetAnimationIndex(index + 1);
+                }
+            }
+        };
+
+        if (g_menu.OptionPlus("Animation info", extras,
+            nullptr, onRight, onLeft, "Animations", 
+            { "Shows current animation override status. Enter to reload." })) {
+            SteeringAnimation::Load();
+        }
     }
 
-    extras.emplace_back("");
-    extras.emplace_back("* marks active dictionary.");
-    if (index >= SteeringAnimation::GetAnimations().size()) {
-        extras.push_back(fmt::format("Index out of range ({})", index));
-    }
+    {
+        auto fetchInfo = [](std::vector<std::string>& diDevicesInfo_) {
+            logger.Write(DEBUG, "Re-scanning DirectInput devices");
+            diDevicesInfo_.clear();
 
-    extras.emplace_back("");
-    extras.emplace_back("Press left/right to change animation manually.");
+            LPDIRECTINPUT lpDi = nullptr;
+            HRESULT result = DirectInput8Create(GetModuleHandle(nullptr),
+                DIRECTINPUT_VERSION,
+                IID_IDirectInput8,
+                reinterpret_cast<void**>(&lpDi),
+                nullptr);
 
-    std::function<void()> onLeft = [index, anims]() {
-        if (!anims.empty()) {
-            if (index == 0) {
-                // Set to "none"
-                SteeringAnimation::SetAnimationIndex(anims.size());
+            if (FAILED(result)) {
+                logger.Write(DEBUG, "Failed to DirectInput8Create, HRESULT: %d", result);
+                diDevicesInfo_.push_back(fmt::format("Failed to get DI, HRESULT: {}", result));
             }
-            else {
-                SteeringAnimation::SetAnimationIndex(index - 1);
+
+            DIDeviceFactory::Get().Enumerate(lpDi);
+
+            diDevicesInfo_.push_back(fmt::format("Devices: {}", DIDeviceFactory::Get().GetEntryCount()));
+            diDevicesInfo_.push_back("");
+
+            for (int i = 0; i < DIDeviceFactory::Get().GetEntryCount(); i++) {
+                const auto* device = DIDeviceFactory::Get().GetEntry(i);
+                std::wstring wDevName = device->diDeviceInstance.tszInstanceName;
+                GUID guid = device->diDeviceInstance.guidInstance;
+
+                // Name
+                diDevicesInfo_.push_back(fmt::format("{}", StrUtil::utf8_encode(wDevName)));
+                diDevicesInfo_.push_back(fmt::format("    GUID: {}", GUID2String(guid)));
+                diDevicesInfo_.push_back(fmt::format("    Type: 0x{:X}", device->diDevCaps.dwDevType));
+                diDevicesInfo_.push_back(fmt::format("    FFB: {}", device->diDevCaps.dwFlags & DIDC_FORCEFEEDBACK));
+                diDevicesInfo_.push_back("");
             }
+        };
+
+        bool selected = false;
+        if (g_menu.OptionPlus("DirectInput devices", diDevicesInfo, 
+            &selected, nullptr, nullptr, "DirectInput info", { "Enter to refresh." })) {
+            fetchInfo(diDevicesInfo);
         }
-    };
 
-    std::function<void()> onRight = [index, anims]() {
-        if (!anims.empty()) {
-            // allow 1 past, to set to none
-            if (index >= anims.size()) {
-                SteeringAnimation::SetAnimationIndex(0);
-            }
-            else {
-                SteeringAnimation::SetAnimationIndex(index + 1);
-            }
+        if (selected) {
+            g_menu.OptionPlusPlus(diDevicesInfo, "DirectInput info");
         }
-    };
-
-    g_menu.OptionPlus("Animation info", extras, 
-        nullptr, onRight, onLeft, "Animations", { "Shows current animation override status" });
-}
-
-void update_compatmenu() {
-    g_menu.Title("Compatibility settings");
-    g_menu.Subtitle("");
-
-    g_menu.BoolOption("Enable dashboard extensions", g_settings.Misc.DashExtensions,
-        { "If DashHook is installed, allows lighting the ABS light." });
-
-    if (g_menu.BoolOption("Enable UDP telemetry", g_settings.Misc.UDPTelemetry,
-        { "Allows programs like SimHub to use data from this script. This script uses DIRT 4 format for telemetry data." })) {
-        StartUDPTelemetry();
     }
 }
 
@@ -1608,6 +1886,9 @@ void update_menu() {
     /* mainmenu -> controlsmenu -> steeringassistmenu */
     if (g_menu.CurrentMenu("steeringassistmenu")) { update_steeringassistmenu(); }
 
+    /* mainmenu -> controlsmenu -> steeringassistmenu -> mousesteeringoptionsmenu */
+    if (g_menu.CurrentMenu("mousesteeringoptionsmenu")) { update_mousesteeringoptionsmenu(); }
+
     /* mainmenu -> controlsmenu -> wheelmenu */
     if (g_menu.CurrentMenu("wheelmenu")) { update_wheelmenu(); }
 
@@ -1641,6 +1922,9 @@ void update_menu() {
     /* mainmenu -> hudmenu -> dashindicatormenu*/
     if (g_menu.CurrentMenu("dashindicatormenu")) { update_dashindicatormenu(); }
 
+    /* mainmenu -> hudmenu -> mousehudmenu*/
+    if (g_menu.CurrentMenu("mousehudmenu")) { update_mousehudmenu(); }
+
     /* mainmenu -> driveassistmenu */
     if (g_menu.CurrentMenu("driveassistmenu")) { update_driveassistmenu(); }
 
@@ -1650,20 +1934,26 @@ void update_menu() {
     /* mainmenu -> gameassistmenu */
     if (g_menu.CurrentMenu("gameassistmenu")) { update_gameassistmenu(); }
 
-    /* mainmenu -> extrasettingsmenu */
-    if (g_menu.CurrentMenu("extrasettingsmenu")) { update_extrasettingsmenu(); }
+    /* mainmenu -> miscoptionsmenu */
+    if (g_menu.CurrentMenu("miscoptionsmenu")) { update_miscoptionsmenu(); }
 
-    /* mainmenu -> extrasettingsmenu -> debugmenu */
+    /* mainmenu -> miscoptionsmenu -> cameraoptionsmenu */
+    if (g_menu.CurrentMenu("cameraoptionsmenu")) { update_cameraoptionsmenu(); }
+
+    /* mainmenu -> miscoptionsmenu -> cameraoptionsmenu -> bike*/
+    if (g_menu.CurrentMenu("bikecameraoptionsmenu")) { update_bikecameraoptionsmenu(); }
+
+    /* mainmenu -> devoptionsmenu */
+    if (g_menu.CurrentMenu("devoptionsmenu")) { update_devoptionsmenu(); }
+
+    /* mainmenu -> devoptionsmenu -> debugmenu */
     if (g_menu.CurrentMenu("debugmenu")) { update_debugmenu(); }
 
-    /* mainmenu -> extrasettingsmenu -> metricsmenu */
+    /* mainmenu -> devoptionsmenu -> metricsmenu */
     if (g_menu.CurrentMenu("metricsmenu")) { update_metricsmenu(); }
 
-    /* mainmenu -> extrasettingsmenu -> perfmenu */
+    /* mainmenu -> devoptionsmenu -> perfmenu */
     if (g_menu.CurrentMenu("perfmenu")) { update_perfmenu(); }
-
-    /* mainmenu -> extrasettingsmenu -> compatmenu */
-    if (g_menu.CurrentMenu("compatmenu")) { update_compatmenu(); }
 
     g_menu.EndMenu();
 }
@@ -1723,13 +2013,13 @@ void clearAxis(const std::string& confTag) {
 }
 
 void clearWheelToKey() {
-    GAMEPLAY::DISPLAY_ONSCREEN_KEYBOARD(1, "VEUI_ENTER_TEXT", "", "", "", "", "", 30);
-    while (GAMEPLAY::UPDATE_ONSCREEN_KEYBOARD() == 0) {
-        CONTROLS::DISABLE_ALL_CONTROL_ACTIONS(0);
+    MISC::DISPLAY_ONSCREEN_KEYBOARD(1, "VEUI_ENTER_TEXT", "", "", "", "", "", 30);
+    while (MISC::UPDATE_ONSCREEN_KEYBOARD() == 0) {
+        PAD::DISABLE_ALL_CONTROL_ACTIONS(0);
         WAIT(0);
     }
-    if (!GAMEPLAY::GET_ONSCREEN_KEYBOARD_RESULT()) return;
-    std::string result = GAMEPLAY::GET_ONSCREEN_KEYBOARD_RESULT();
+    if (!MISC::GET_ONSCREEN_KEYBOARD_RESULT()) return;
+    std::string result = MISC::GET_ONSCREEN_KEYBOARD_RESULT();
 
     int button;
     if (str2int(button, result.c_str(), 10) != STR2INT_SUCCESS) {
@@ -1756,7 +2046,7 @@ void clearButton(const std::string& confTag) {
 
 void clearHShifter() {
     saveChanges();
-    for (uint8_t i = 0; i < g_numGears; ++i) {
+    for (uint8_t i = 0; i < VExt::GearsAvailable(); ++i) {
         g_settings.SteeringSaveButton(fmt::format("HPATTERN_{}", i), -1, -1);
     }
     g_settings.Read(&g_controls);
@@ -2037,7 +2327,7 @@ bool configHPattern() {
     std::string additionalInfo = fmt::format("Press {} to exit. Press {} to skip gear.", escapeKey, skipKey);
 
     GUID devGUID = {};
-    std::vector<int> buttonArray(g_numGears);
+    std::vector<int> buttonArray(VExt::GearsAvailable());
     std::fill(buttonArray.begin(), buttonArray.end(), -1);
 
     int progress = 0;
@@ -2070,7 +2360,7 @@ bool configHPattern() {
             }
         }
 
-        if (progress > g_numGears - 1) {
+        if (progress > VExt::GearsAvailable() - 1) {
             break;
         }
         std::string gearDisplay;
@@ -2227,7 +2517,7 @@ bool configLControllerButton(const std::string &confTag) {
         }
         g_controls.UpdateValues(CarControls::InputDevices::Controller, true);
         for (const auto& input : NativeController::NativeGamepadInputs) {
-            if (CONTROLS::IS_DISABLED_CONTROL_JUST_PRESSED(0, input.first)) {
+            if (PAD::IS_DISABLED_CONTROL_JUST_PRESSED(0, input.first)) {
                 saveLControllerButton(confTag, input.first);
                 return true;
             }

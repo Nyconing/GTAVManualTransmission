@@ -3,13 +3,15 @@
 
 #include <inc/natives.h>
 
+using VExt = VehicleExtensions;
+
 extern VehicleGearboxStates g_gearStates;
 
-void UDPTelemetry::UpdatePacket(Socket& socket, Vehicle vehicle, const VehicleData& vehData, 
-    const CarControls& controls, VehicleExtensions& ext) {
+void UDPTelemetry::UpdatePacket(Socket& socket, Vehicle vehicle, const VehicleData& vehData,
+                                const CarControls& controls) {
     TelemetryPacket packet{};
 
-    packet.Time = static_cast<float>(GAMEPLAY::GET_GAME_TIMER()) / 1000.0f;
+    packet.Time = static_cast<float>(MISC::GET_GAME_TIMER()) / 1000.0f;
 
     auto worldPos = ENTITY::GET_ENTITY_COORDS(vehicle, true);
     auto worldSpeed = ENTITY::GET_ENTITY_VELOCITY(vehicle);
@@ -64,7 +66,7 @@ void UDPTelemetry::UpdatePacket(Socket& socket, Vehicle vehicle, const VehicleDa
     packet.MaxGears = static_cast<float>(vehData.mGearTop);
 
     packet.FuelCapacity = 65.0f;
-    packet.FuelRemaining = ext.GetFuelLevel(vehicle);
+    packet.FuelRemaining = VExt::GetFuelLevel(vehicle);
 
     socket.SendPacket(reinterpret_cast<char*>(&packet), sizeof(packet));
 }

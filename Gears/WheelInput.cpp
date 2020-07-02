@@ -1,5 +1,6 @@
 #include "WheelInput.h"
 
+#include "VehicleConfig.h"
 #include "script.h"
 #include "ScriptUtils.h"
 #include "ScriptSettings.hpp"
@@ -25,6 +26,7 @@ extern Vehicle g_playerVehicle;
 extern Ped g_playerPed;
 extern VehicleExtensions g_ext;
 extern ScriptSettings g_settings;
+extern VehicleConfig* g_activeConfig;
 extern VehicleData g_vehData;
 extern CarControls g_controls;
 
@@ -258,7 +260,7 @@ void WheelInput::HandlePedals(float wheelThrottleVal, float wheelBrakeVal) {
 
             if (ENTITY::GET_ENTITY_SPEED_VECTOR(g_playerVehicle, true).y > reverseThreshold) {
                 if (!isClutchPressed()) {
-                    CONTROLS::_SET_CONTROL_NORMAL(0, ControlVehicleHandbrake, 1.0f);
+                    PAD::_SET_CONTROL_NORMAL(0, ControlVehicleHandbrake, 1.0f);
                 }
                 // Brake Pedal Reverse
                 if (wheelBrakeVal > 0.01f) {
@@ -377,7 +379,7 @@ void checkRadioButtons() {
 
 void checkCameraButtons() {
     if (g_controls.ButtonIn(CarControls::WheelControlType::LookBack)) {
-        CONTROLS::_SET_CONTROL_NORMAL(0, ControlVehicleLookBehind, 1.0f);
+        PAD::_SET_CONTROL_NORMAL(0, ControlVehicleLookBehind, 1.0f);
     }
 
     // who was first?
@@ -408,22 +410,40 @@ void checkCameraButtons() {
     }
 
     if (g_controls.ButtonJustPressed(CarControls::WheelControlType::Camera)) {
-        CONTROLS::_SET_CONTROL_NORMAL(0, ControlNextCamera, 1.0f);
+        PAD::_SET_CONTROL_NORMAL(0, ControlNextCamera, 1.0f);
     }
 }
 
 void checkVehicleInputButtons() {
     if (g_controls.HandbrakeVal > 0.1f) {
-        CONTROLS::_SET_CONTROL_NORMAL(0, ControlVehicleHandbrake, g_controls.HandbrakeVal);
+        PAD::_SET_CONTROL_NORMAL(0, ControlVehicleHandbrake, g_controls.HandbrakeVal);
     }
     if (g_controls.ButtonIn(CarControls::WheelControlType::Handbrake)) {
-        CONTROLS::_SET_CONTROL_NORMAL(0, ControlVehicleHandbrake, 1.0f);
+        PAD::_SET_CONTROL_NORMAL(0, ControlVehicleHandbrake, 1.0f);
     }
     if (g_controls.ButtonIn(CarControls::WheelControlType::Horn)) {
-        CONTROLS::_SET_CONTROL_NORMAL(0, ControlVehicleHorn, 1.0f);
+        PAD::_SET_CONTROL_NORMAL(0, ControlVehicleHorn, 1.0f);
     }
     if (g_controls.ButtonJustPressed(CarControls::WheelControlType::Lights)) {
-        CONTROLS::_SET_CONTROL_NORMAL(0, ControlVehicleHeadlight, 1.0f);
+        PAD::_SET_CONTROL_NORMAL(0, ControlVehicleHeadlight, 1.0f);
+    }
+}
+
+void checkAssistButtons() {
+    if (g_controls.ButtonJustPressed(CarControls::WheelControlType::ToggleABS)) {
+        bool newState = !g_settings().DriveAssists.ABS.Enable;
+        UI::Notify(INFO, fmt::format("ABS {}", newState ? "~g~ON" : "~r~OFF"));
+        APPLY_CONFIG_VALUE(DriveAssists.ABS.Enable, newState);
+    }
+    if (g_controls.ButtonJustPressed(CarControls::WheelControlType::ToggleESC)) {
+        bool newState = !g_settings().DriveAssists.ESP.Enable;
+        UI::Notify(INFO, fmt::format("ESC {}", newState ? "~g~ON" : "~r~OFF"));
+        APPLY_CONFIG_VALUE(DriveAssists.ESP.Enable, newState);
+    }
+    if (g_controls.ButtonJustPressed(CarControls::WheelControlType::ToggleTCS)) {
+        bool newState = !g_settings().DriveAssists.TCS.Enable;
+        UI::Notify(INFO, fmt::format("TCS {}", newState ? "~g~ON" : "~r~OFF"));
+        APPLY_CONFIG_VALUE(DriveAssists.TCS.Enable, newState);
     }
 }
 
@@ -432,6 +452,7 @@ void WheelInput::CheckButtons() {
         return;
     }
 
+    checkAssistButtons();
     checkVehicleInputButtons();
     checkCameraButtons();
     checkRadioButtons();
@@ -468,6 +489,9 @@ void WheelInput::DoSteering() {
 
     if (g_vehData.mClass == VehicleClass::Car) {
         g_ext.SetSteeringInputAngle(g_playerVehicle, -effSteer);
+
+        if (!VEHICLE::GET_IS_VEHICLE_ENGINE_RUNNING(g_playerVehicle))
+            g_ext.SetSteeringAngle(g_playerVehicle, -effSteer * g_ext.GetMaxSteeringAngle(g_playerVehicle));
 
         auto boneIdx = ENTITY::GET_ENTITY_BONE_INDEX_BY_NAME(g_playerVehicle, "steeringwheel");
         if (boneIdx != -1 && g_settings.Wheel.Options.SyncRotation) {

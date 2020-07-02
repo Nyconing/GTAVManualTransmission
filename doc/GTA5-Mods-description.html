@@ -1,99 +1,178 @@
-<b>Manual Transmission for GTA V</b>
-This mod will enable manual transmission for vehicles, using the games' real gear box! This means real gears - not speed capping. There are plenty of features to emulate how real transmissions work.
-
-It’s highly recommended to play with this mod using a controller or a wheel.
-
-<b>Steering Wheel Support for GTA V</b>
-With manual transmission enabled, you'll want to be able to properly control your vehicle. By default, GTA V doesn't support steering wheels. Solutions like X360CE only emulate a controller, and the game will miss definition and force feedback for wheels. For this, a large part of this mod is made to support wheels, natively! A few features:
+<b>Manual Transmission and Steering Wheel Support for GTA V</b>
+<br>
+<b>Features</b>
 <ul>
-    <li>all DirectInput compatible steering wheels supported (since 4.0)</li>
-    <li>force feedback is fully supported</li>
-    <li>multiple input devices supported (since 4.2.0)</li>
-    <li>1:1 mapping of steering wheel to vehicle front wheels</li>
+  <li>Control over the <b>transmission</b> and drivetrain components
+    <ul>
+      <li>Sequential, H-pattern or custom automatic gearbox modes</li>
+      <li>Clutch and engine simulation</li>
+      <li>Limited slip differential emulation</li>
+    </ul>
+  </li>
+  <li>Complete <b>steering wheel</b> integration, with <b>Force Feedback</b></li>
+  <li>Enhanced support for keyboard/mouse and controllers
+    <ul>
+      <li>Customizable steering sensitivity and assist levels</li>
+    </ul>
+  </li>
+  <li>Custom realistic active <b>driver assists</b>: ABS, Traction Control, Stability Control</li>
+  <li>Customizable <b>steering wheel rotation</b>, with <b>synchronized animations</b></li>
+  <li>Custom first person driving camera with <b>physics effects</b></li>
+  <li>Enhanced experience with other software and mods
+    <ul>
+      <li>Exports UDP telemetry in DiRT 4 format</li>
+      <li> <a href="https://github.com/E66666666/GTAVManualTransmission/blob/master/Gears/ManualTransmission.h">API</a> to read and control the mod</li>
+    </ul>
+  </li>
+  <li>Extensive customizability of nearly <b>every aspect</b> of the mod using the in-game menu</li>
 </ul>
-<b>Features:</b>
-<ul>
-	<li>Real gears!</li>
-	<li>Dynamic top gear detection</li>
-	<li>Realistic input mapping with working clutch</li>
-	<li>Engine and transmission effects</li>
-	<li>Support for all land-based engine-powered vehicles</li>
-	<li>Fully configurable</li>
-	<li><a href=https://www.youtube.com/watch?v=r0vxhThdoLo>HUD with speed, RPM and shift mode</a></li>
-	<li>Sequential, automatic and manual gearbox choices</li>
-	<li>Controller, keyboard and wheel input support</li>
-	<li>Seamless input device switching</li>
-	<li>DirectInput Steering Wheel support</li>
-</ul>
-There's much more inside, so take a look!
 
+<br>
 <b>Requirements</b>
-GTA V v1.0.877.1 to 1.0.1180.2
-<a href=http://www.dev-c.com/gtav/scripthookv/>ScriptHookV</a>
+<ul>
+  <li>Grand Theft Auto V</li>
+  <li> <a href=http://www.dev-c.com/gtav/scripthookv/>ScriptHookV</a></li>
+  <li> <a href=https://www.gta5-mods.com/tools/dashhook>DashHook</a> (optional)</li>
+</ul>
 
+<br>
 <b>Installation</b>
-Put Gears.asi and the folder ManualTransmission in your GTA V folder (overwrite when asked)
-Read <a href=https://github.com/E66666666/GTAVManualTransmission/blob/master/doc/README.md>the README</a> and configure the mod to your preferences with the in-game menu.
+<ul>
+  <li>Put <b>Gears.asi</b> and the folder <b>ManualTransmission</b> in your GTA V folder (overwrite when asked)</li>
+  <li>Put <b>DismembermentASI.asi</b> by <a href=https://www.gta5-mods.com/users/CamxxCore><b>CamxxCore</b></a> in your GTA V folder (if not already installed)</li>
+  <li>Read <a href=https://github.com/E66666666/GTAVManualTransmission/blob/master/doc/README.md>the README</a> and configure the mod to your preferences with the in-game menu.</li>
+  <li> <b><i>Use the in-game menu!</i></b> Wheel users: Assign all axes and buttons you intend to use.</li>
+</ul>
 
 <b>Updating</b>
-Put Gears.asi in your GTA V folder. You can keep old settings, new options are simply added.
-
-<b>Wheel installation</b>
-Use the <b><i>in-game menu</i></b>. You might want to keep <a href=https://github.com/E66666666/GTAVManualTransmission/blob/master/doc/README.md>the README</a> as reference.
-
-<b>FiveM installation</b>
-Create a <b>plugins</b> folder in <b>FiveM Application Data</b> and put <b>Gears.asi</b> and the <b>ManualTransmission folder</b> in there.
+<ul>
+  <li>Put <b>Gears.asi</b> and the folder <b>ManualTransmission</b> in your GTA V folder</li>
+  <li>Old settings <b>do NOT need to be overwritten</b></li>
+  <li>Check the changelog for new or changed options</li>
+</ul>
 
 <b>Usage</b>
-Refer to the <a href=https://github.com/E66666666/GTAVManualTransmission/blob/master/doc/README.md>README</a>. The menu contains plenty of descriptions too.
-
-<b>Keys</b>
-Open menu:
-[{ on US layout
-Ü on DE layout
-Å on Nordic layout
-It's to the right of "P" in general on QWERTY layouts.
-
-Refer to  the <a href=https://github.com/E66666666/GTAVManualTransmission/blob/master/doc/README.md>readme</a> for other default keys. 
+<ul>
+  <li>Menu opening:
+    <ul>
+      <li>Press <b>[{</b> (US layout) (right of the "P" on most QWERTY keyboards)</li>
+      <li>Enter the "<b>mtmenu</b>" cheat (without quotes)</li>
+      <li>Press <b>RB + B</b> on your controller</li>
+    </ul>
+  </li>
+  <li>Default keys: Check the options in the menu or check the <a href=https://github.com/E66666666/GTAVManualTransmission/blob/master/doc/README.md#default-controls>readme</a></li>
+</ul>
 
 <b>Recommended mods</b>
-<a href=https://www.gta5-mods.com/vehicles/realistic-driving-v>Realistic Driving V</a>
-<a href=https://www.gta5-mods.com/scripts/speedometer-improvedalexbladeversion>LeFix Speedometer</a>
-<a href=https://www.gta5-mods.com/scripts/nfsgauge-rpm-gear-speedometer>NFS Gauge</a>
+<ul>
+  <li> Gameplay and driving:
+    <ul>
+      <li> <a href=https://www.gta5-mods.com/vehicles/realistic-driving-v>Realistic Driving V</a>: Improves general car handling. Must-have for force-feedback wheels, since it uses realistic lateral grip.</li>
+      <li> <a href=https://www.gta5-mods.com/scripts/custom-gear-ratios>Custom Gear Ratios</a>: Essential if you have cars with more than 6 gears, and allows matching gear ratios with the real car counterparts.</li>
+      <li> <a href=https://www.gta5-mods.com/scripts/turbo-fix>Turbo Fix</a>: A quicker, more realistic turbo response.</li>
+      <li> <a href=https://www.gta5-mods.com/scripts/dial-accuracy-fix>Dial Accuracy Fix</a>: Map the dashboard speedometer dials to fit your real speed, for more immersion.</li>
+      <li> <a href=https://www.gta5-mods.com/scripts/auto-center-steering-patch-temp-fix>ACSPatch</a>: Keep wheels turned when exiting cars</li>
+    </ul>
+  </li>
+  <li>Speedometers with proper gears and revs:
+    <ul>
+      <li> <a href=https://www.gta5-mods.com/scripts/lefix-speedometer>Speedometer by LeFix</a> (maintained by me)</li>
+      <li> <a href=https://www.gta5-mods.com/scripts/nfsgauge-rpm-gear-speedometer>NFS Gauge</a> by XMOD</li>
+      <li> <a href=https://www.gta5-mods.com/scripts/need-for-speed-underground-speedometer>NFSU Speedometer</a> (includes a turbo gauge!)</li>
+      <li>Any ScriptHookVDotNet-based speedometer with gears and revs</li>
+    </ul>
+  </li>
+  <li>Scripts that counter the power loss while drifting or sliding (also mitigated by the LSD):
+    <ul>
+      <li> <a href=https://www.gta5-mods.com/scripts/inversepower>InversePower</a></li>
+      <li> <a href=https://www.gta5-mods.com/scripts/true-realistic-driving-v-realistic-mass-v0-1-beta>True Realistic Driving V</a>: Script-based physics</li>
+      <li> <a href=https://www.gta5-mods.com/scripts/stop-powercutting>Stop!Powercutting</a>: InversePower alternative</li>
+      <li> <a href=https://www.gta5-mods.com/scripts/inversetorque>InverseTorque</a>: InversePower alternative</li>
+    </ul>
+  </li>
+</ul>
 
 <b>Troubleshooting</b>
-<i>Have you tried turning it off and on again?</i>
-When asking for help, include the following:
-* ManualTransmission/Gears.log
-* ManualTransmission/settings_general.ini
-* ManualTransmission/settings_wheel.ini
-* What kind of inputs (wheel/controller/keyboard) you're using
-* What you already tried to do
-
-You can use <a href=www.pastebin.com>pastebin</a> to post the files.
-<b>If you don't include at least the mod version and game version, I'm just straight out gonna ignore you.</b>
+<ul>
+  <li> <b>ALWAYS</b> include the following (use <a href=www.pastebin.com>pastebin</a> or something similar to post the files):
+    <ul>
+      <li>ManualTransmission/Gears.log</li>
+      <li>ManualTransmission/settings_general.ini</li>
+      <li>ManualTransmission/settings_wheel.ini</li>
+      <li>What kind of inputs (wheel/controller/keyboard) you're using</li>
+      <li>What you already tried to do</li>
+    </ul>
+  </li>
+  <li>FiveM support is limited. Try to pinpoint the issue. Provide logs.</li>
+  <li>Incompatibilities with other mods is similar. Pinpoint the issue and provide logs.</li> </ul>
 
 <b>Known bugs and problems</b>
-- Crashes with a <b>Logitech G920</b> and <b>ScriptHookVDotNet v2</b>. No workaround known. PLEASE CONFIRM IF IT WORKS WITH v4.3.0+!
-- Wheel sticks to one side and/or brake/throttle stuck. Try switching the mod off and on again.
+<ul>
+  <li>Crashes with a <b>Logitech G920</b> and <b>ScriptHookVDotNet v2</b>
+    <ul>
+      <li>Workaround 1: Launch the game using <a href="https://ragepluginhook.net/">RagePluginHook</a> (Found by BULLFAYCE)</li>
+      <li>Workaround 2: Remove ScriptHookVDotNet</li>
+    </ul>
+  </li>
+  <li>Wheel sticks to one side and/or brake/throttle stuck
+    <ul>
+      <li>Prevent: Pause before alt-tabbing. Do not alt-tab before the game finished loading.</li>
+      <li>Workaround: Try switching the mod off and on again.</li>
+    </ul>
+  </li>
+  <li>Wheel is 100% not detected when using Steam
+    <ul>
+      <li>Fix: Steam > Steam Big Picture > Settings > Controller Settings > Uncheck Generic Gamepad Configuration Support (Found by Kaerali)</li>
+    </ul>
+  </li>
+</ul>
 
-<b>Sincere thanks to:</b>
-Rockstar Games
-Alexander Blade
-LeFix
-XMOD
-InfamousSabre
-leftas
-kagikn
-and everybody else who helped me!
+<b>Thank you!</b><br>
+Thank you everybody who uses, helped and contributed in any way. Getting feedback from you only makes it better :)
+<br>
+Special thanks to:
+<ul>
+  <li>Everyone who helped, provided information in any stage of this mod :)</li>
+  <li>alloc8or - much of the newer memory stuff</li>
+  <li>CamxxCore - DismembermentASI.asi</li>
+  <li>InfamousSabre - steering related code</li>
+  <li>any333 - limited slip diff sample code</li>
+  <li>Nyconing - alternative automatic transmission PR</li>
+</ul>
 
-<b>Source code available </b> <a href=https://github.com/E66666666/GTAVManualTransmission>on GitHub</a>
-You can also contribute my messaging me offsets for older versions, for more support :)
-<b>Full changelog available </b> <a href=https://github.com/E66666666/GTAVManualTransmission/blob/master/doc/changelog.md>on GitHub</a>
-
+<br>
+<b>Source code</b><br>
+<a href=https://github.com/E66666666/GTAVManualTransmission>Hosted on GitHub</a>
+<br>
 <b>Alternative downloads</b>
-Old releases: <a href=https://github.com/E66666666/GTAVManualTransmission/releases>GitHub Releases</a>
-Latest build: <a href=https://ci.appveyor.com/project/E66666666/gtavmanualtransmission/build/artifacts>AppVeyor Artifacts</a> (unstable)
+<ul>
+  <li> Releases archive: <a href=https://github.com/E66666666/GTAVManualTransmission/releases>GitHub Releases</a></li>
+  <li> Latest automatic build: <a href=https://ci.appveyor.com/project/E66666666/gtavmanualtransmission/build/artifacts>AppVeyor Artifacts</a></li>
+</ul>
+<br>
+<b>Changelog</b><br>
 
-<b>Changelog</b>
--
+<b>4.8.1</b><br>
+<ul>
+  <li>Replace exceptions-using error handling, as workaround for an <a href=https://github.com/crosire/scripthookvdotnet/issues/936>issue with ScriptHookVDotNet</a></li>
+  <li>Update default configuration files to auto-generated ones</li>
+  <li>Allow faster sequential shifting</li>
+</ul>
+
+Also check out the changelog of 4.8.0!<br><br>
+
+<b>4.8.0</b><br>
+Due to size, <a href="https://github.com/E66666666/GTAVManualTransmission/releases/tag/v4.8.0">read directly on GitHub</a>!<br>
+
+<a href="https://github.com/E66666666/GTAVManualTransmission/blob/v4.7.0/doc/changelog.md">Changelog</a><br>
+<a href="https://github.com/E66666666/GTAVManualTransmission/blob/v4.7.0/doc/v4.7.0-release-notes.md">Release notes</a><br>
+
+<br>
+<b>Full changelog </b> <a href=https://github.com/E66666666/GTAVManualTransmission/blob/master/doc/changelog.md>available on GitHub</a>
+<br>
+
+<b>Contact</b>
+<ul>
+  <li> <a href=https://discord.gg/gHee23U><b>💬 Chat along on Discord!</b></a></li>
+  <li> <a href=https://forum.fivem.net/t/release-manual-transmission-steering-wheel-support-client/13769><b>🐌 View topic on FiveM.net Forums »</b></a></li>
+</ul>

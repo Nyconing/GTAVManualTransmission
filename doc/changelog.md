@@ -1,21 +1,58 @@
 # Changelog
 
+## 4.8.2
+
+* Add "Disable autostart" option
+* Add "Leave engine running" option
+* Add engine on/off animations
+* Fix haptic stalling effect playing on wrong device
+* Fix phone animation in cars not playing
+* Fix LSD settings not being vehicle-specific
+
+## 4.8.1
+
+* Replace exceptions-using error handling, as workaround for an
+[issue with ScriptHookVDotNet](https://github.com/crosire/scripthookvdotnet/issues/936)
+* Update default configuration files to auto-generated ones
+* Allow faster sequential shifting
+
 ## 4.8.0
 
-Lots of small fixes and improvements! The settings files are generally
-compatible, aside from the following:
+New features and lots of small fixes and improvements! The settings files are
+generally compatible, aside from the following:
 
-* `SHIFT_ASSISTS` typo fix: now ignores the old wrongly spelled `SHIFT_ASSIST` section
-* H-Pattern shifter assignment changed, now each gear has its own entry
+* ini updates
+  * `SHIFT_ASSISTS` typo fix: now ignores the old wrongly spelled `SHIFT_ASSIST` section
+  * H-Pattern shifter assignment changed, now each gear has its own entry
+
+New features!
+
+* Custom first person driving camera with physics effects! Install the
+`DismembermentASI.asi` file by CamxxCore for a clean, first person camera.
+* Synchronized steering animations with wheel rotation
+* Support mouse steering with Enhanced Custom Steering
+* New alternate automatic transmission mode, by
+[Nyconing](https://github.com/Nyconing)!
+* Add UDP telemetry support for programs like SimHub.
+DiRT 4 format thanks to [guilhermelimak](https://github.com/guilhermelimak).
+* Add a simulated limited slip differential, thanks to [any333](https://www.gta5-mods.com/users/any333).
+
+Improvements and bug fixes:
 
 * Engine and transmission
-  * Add alternate automatic transmission mode, by [Nyconing](https://github.com/Nyconing)
+  * Add visual and physical feedback to stalling
+  * Improve stalling with additional settings
+  * Improve clutch creep with additional settings
   * Fix engine revving when locked up due to direction
   * Fix delta-gear ratio for automatic transission downshifts
   * Fix ABS affecting automatic transmission shifting
   * Fix NPCs not shifting for forward/reverse
   * Fix clutch creep revving engine when a driven wheel is off the ground
   * Change engine braking to use negative throttle instead of the brakes
+* Wheel button to keyboard mapping
+  * Add mouse input support: LMB, RMB, MMB, X1 and X2
+  * Add support for 1 button -> multiple keyboard keys
+  * Add dpad support: 8 directions mappable to keyboard keys
 * Settings
   * Add UI settings to Vehicle Configs
   * Add ClutchShift options to Vehicle Configs
@@ -23,29 +60,32 @@ compatible, aside from the following:
   * Fix swapped up/downshift cut/blip settings in menu
   * Fix typo for `DRIVE_ASSISTS` ini section
 * Driving assists
-  * Add button to switch between driving assists sets
+  * Add buttons to switch between or toggle driving assists sets
   * Apply TCS, ESC and ABS simultaneously
   * Improve ESC: Also use rear wheels at large corrections
 * Custom steering
-  * Add adjustable speeds for CustomSteering
+  * Add adjustable input speeds for CustomSteering
   * Use system timer in CustomSteering, fixes slow steering in slowmotion
+  * Improve responsiveness while countersteering
   * Improve CustomSteering for amphibious cars in water
   * Disable CustomSteering for boats
   * Disable CustomSteering for cutscenes
   * Fix CustomSteering deactivation timing for better ACSPatch control
 * UI
-  * Improve menu layout (hopefully)
-  * Add DashHook support for ABS light
+  * Improve menu layout
+  * Add DashHook support for ABS light and other warning lights when stalled
   * Add color options for speedo, gear and shift mode UI elements
   * Add option to turn off UI font outlines
   * Show enabled but untriggered assists as black on dashboard indicators
   * Show triggered lights for at least 300 milliseconds before turning off
+  * Show stalling progress in RPM bar
   * Fix throttle-based TCS not firing dashboard indicator icon
 * General
-  * Add UDP telemetry support for programs like SimHub. DiRT4 thanks to [guilhermelimak](https://github.com/guilhermelimak)
-  * Add animation syncing!
+  * Add wheel size in debug (e.g. 265/35R21)
+  * Improve G-force graph smoothness
   * Fix control acquire/release timing (now only when ped has control of car)
   * Fix controller engine on/off hold trigger
+  * Fix an issue for VehicleConfig, where an unspecified option used the class defaults instead of the active main settings
 
 ## 4.7.1
 

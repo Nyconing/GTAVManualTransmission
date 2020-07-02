@@ -24,12 +24,17 @@ extern ScriptSettings g_settings;
 namespace {
     float steerPrev = 0.0f;
     long long lastTickTime = 0;
+
+    bool mouseDown = false;
+    float mouseXTravel = 0.0f;
 }
 
 namespace CustomSteering {
     float calculateReduction();
     float calculateDesiredHeading(float steeringMax, float desiredHeading, float reduction);
     void drawDebug();
+    // Doesn't change steer when not mouse steering
+    void updateMouseSteer(float& steer);
 }
 
 float CustomSteering::calculateReduction() {
@@ -51,8 +56,7 @@ float CustomSteering::calculateReduction() {
 // Returns in radians
 float CustomSteering::calculateDesiredHeading(float steeringMax, float desiredHeading, float reduction) {
     // Scale input with both reduction and steering limit
-    desiredHeading = desiredHeading * reduction * steeringMax;
-    float correction = desiredHeading;
+    float correction;
 
     Vector3 speedVector = ENTITY::GET_ENTITY_SPEED_VECTOR(g_playerVehicle, true);
     if (abs(speedVector.y) > 3.0f) {
@@ -73,7 +77,17 @@ float CustomSteering::calculateDesiredHeading(float steeringMax, float desiredHe
         // clamp auto correction to countersteer limit
         travelDir = std::clamp(travelDir, deg2rad(-g_settings.CustomSteering.CountersteerLimit), deg2rad(g_settings.CustomSteering.CountersteerLimit));
 
-        correction = travelDir + desiredHeading;
+        float finalReduction = map(abs(travelDir), 0.0f, g_settings.CustomSteering.CountersteerLimit, reduction, 1.0f);
+
+        // CountersteerLimit can be 0, resulting in finalReduction == nan.
+        if (std::isnan(finalReduction)) {
+            finalReduction = reduction;
+        }
+
+        correction = travelDir + desiredHeading * finalReduction * steeringMax;
+    }
+    else {
+        correction = desiredHeading * reduction * steeringMax;
     }
     return std::clamp(correction, -steeringMax, steeringMax);
 }
@@ -156,9 +170,9 @@ void disableControls() {
     }
 
     if (disableUpDown)
-        CONTROLS::DISABLE_CONTROL_ACTION(1, ControlVehicleMoveUpDown, true);
+        PAD::DISABLE_CONTROL_ACTION(1, ControlVehicleMoveUpDown, true);
     if (disableLeftRight)
-        CONTROLS::DISABLE_CONTROL_ACTION(1, ControlVehicleMoveLeftRight, true);
+        PAD::DISABLE_CONTROL_ACTION(1, ControlVehicleMoveLeftRight, true);
 }
 
 // Main custom steering function - called by main loop.
@@ -172,7 +186,7 @@ void CustomSteering::Update() {
     float limitRadians = g_ext.GetMaxSteeringAngle(g_playerVehicle);
     float reduction = calculateReduction();
 
-    float steer = -CONTROLS::GET_DISABLED_CONTROL_NORMAL(1, ControlMoveLeftRight);
+    float steer = -PAD::GET_DISABLED_CONTROL_NORMAL(1, ControlMoveLeftRight);
 
     float steerCurr;
 
@@ -197,6 +211,10 @@ void CustomSteering::Update() {
     lastTickTime = milliseconds_now();
     steerPrev = steerCurr;
 
+    // No smoothing for mouse input
+    if (g_settings.CustomSteering.MouseSteering)
+        updateMouseSteer(steerCurr);
+
     // Ignore reduction for wet vehicles.
     int modelType = g_ext.GetModelType(g_playerVehicle);
     bool isFrog = modelType == 5 || modelType == 6 || modelType == 7;
@@ -210,6 +228,9 @@ void CustomSteering::Update() {
     disableControls();
 
     g_ext.SetSteeringInputAngle(g_playerVehicle, desiredHeading * (1.0f / limitRadians));
+
+    if (!VEHICLE::GET_IS_VEHICLE_ENGINE_RUNNING(g_playerVehicle))
+        g_ext.SetSteeringAngle(g_playerVehicle, desiredHeading);
 
     auto boneIdx = ENTITY::GET_ENTITY_BONE_INDEX_BY_NAME(g_playerVehicle, "steeringwheel");
     if (boneIdx != -1 && g_settings.CustomSteering.CustomRotation) {
@@ -226,5 +247,57 @@ void CustomSteering::Update() {
 
         VehicleBones::RotateAxis(g_playerVehicle, boneIdx, rotAxis, rotDeg);
         SteeringAnimation::SetRotation(rotDegRaw);
+    }
+}
+
+void CustomSteering::updateMouseSteer(float& steer) {
+    bool mouseControl =
+        PAD::GET_CONTROL_NORMAL(0, eControl::ControlVehicleMouseControlOverride) != 0.0f &&
+        !PLAYER::IS_PLAYER_FREE_AIMING(PLAYER::GET_PLAYER_INDEX());
+
+    // on press
+    if (!mouseDown && mouseControl) {
+        mouseDown = true;
+        mouseXTravel = 0.0f;
+        PLAYER::SET_PLAYER_CAN_DO_DRIVE_BY(PLAYER::GET_PLAYER_INDEX(), false);
+    }
+
+    // on release
+    if (mouseDown && !mouseControl) {
+        mouseDown = false;
+        PLAYER::SET_PLAYER_CAN_DO_DRIVE_BY(PLAYER::GET_PLAYER_INDEX(), true);
+        //xTravel = 0.0f;
+    }
+
+    if (mouseDown && mouseControl) {
+        PAD::DISABLE_CONTROL_ACTION(0, eControl::ControlLookLeftRight, true);
+        PAD::DISABLE_CONTROL_ACTION(0, eControl::ControlLookUpDown, true);
+
+        float mouseVal = PAD::GET_DISABLED_CONTROL_NORMAL(0, eControl::ControlLookLeftRight);
+        mouseXTravel += mouseVal * g_settings.CustomSteering.MouseSensitivity;
+        mouseXTravel = std::clamp(mouseXTravel, -1.0f, 1.0f);
+
+        steer = -mouseXTravel;
+
+        if (g_settings.HUD.MouseSteering.Enable) {
+            GRAPHICS::DRAW_RECT(
+                g_settings.HUD.MouseSteering.XPos,
+                g_settings.HUD.MouseSteering.YPos,
+                g_settings.HUD.MouseSteering.XSz,
+                g_settings.HUD.MouseSteering.YSz,
+                g_settings.HUD.MouseSteering.BgR,
+                g_settings.HUD.MouseSteering.BgG,
+                g_settings.HUD.MouseSteering.BgB,
+                g_settings.HUD.MouseSteering.BgA, 0);
+            GRAPHICS::DRAW_RECT(
+                g_settings.HUD.MouseSteering.XPos + mouseXTravel * g_settings.HUD.MouseSteering.XSz * 0.5f,
+                g_settings.HUD.MouseSteering.YPos,
+                g_settings.HUD.MouseSteering.MarkerXSz,
+                g_settings.HUD.MouseSteering.YSz,
+                g_settings.HUD.MouseSteering.FgR,
+                g_settings.HUD.MouseSteering.FgG,
+                g_settings.HUD.MouseSteering.FgB,
+                g_settings.HUD.MouseSteering.FgA, 0);
+        }
     }
 }

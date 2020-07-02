@@ -60,15 +60,20 @@ void ScriptSettings::SetVehicleConfig(VehicleConfig* cfg) {
     localSettings.MTParams.EngBrakePower      = activeConfig->MTParams.EngBrakePower    ;
     localSettings.MTParams.EngBrakeThreshold  = activeConfig->MTParams.EngBrakeThreshold;
     localSettings.MTParams.ClutchThreshold    = activeConfig->MTParams.ClutchThreshold  ;
-    localSettings.MTParams.StallingThreshold  = activeConfig->MTParams.StallingThreshold;
     localSettings.MTParams.StallingRPM        = activeConfig->MTParams.StallingRPM      ;
+    localSettings.MTParams.StallingRate       = activeConfig->MTParams.StallingRate     ;
+    localSettings.MTParams.StallingSlip       = activeConfig->MTParams.StallingSlip     ;
     localSettings.MTParams.RPMDamage          = activeConfig->MTParams.RPMDamage        ;
     localSettings.MTParams.MisshiftDamage     = activeConfig->MTParams.MisshiftDamage   ;
+    localSettings.MTParams.CreepIdleThrottle  = activeConfig->MTParams.CreepIdleThrottle;
+    localSettings.MTParams.CreepIdleRPM       = activeConfig->MTParams.CreepIdleRPM     ;
 
     localSettings.DriveAssists.ABS.Enable       = activeConfig->DriveAssists.ABS.Enable      ;
     localSettings.DriveAssists.ABS.Filter       = activeConfig->DriveAssists.ABS.Filter      ;
+    localSettings.DriveAssists.TCS.Enable       = activeConfig->DriveAssists.TCS.Enable      ;
     localSettings.DriveAssists.TCS.Mode         = activeConfig->DriveAssists.TCS.Mode        ;
     localSettings.DriveAssists.TCS.SlipMax      = activeConfig->DriveAssists.TCS.SlipMax     ;
+    localSettings.DriveAssists.ESP.Enable       = activeConfig->DriveAssists.ESP.Enable      ;
     localSettings.DriveAssists.ESP.OverMin      = activeConfig->DriveAssists.ESP.OverMin     ;
     localSettings.DriveAssists.ESP.OverMax      = activeConfig->DriveAssists.ESP.OverMax     ;
     localSettings.DriveAssists.ESP.OverMinComp  = activeConfig->DriveAssists.ESP.OverMinComp ;
@@ -77,6 +82,9 @@ void ScriptSettings::SetVehicleConfig(VehicleConfig* cfg) {
     localSettings.DriveAssists.ESP.UnderMax     = activeConfig->DriveAssists.ESP.UnderMax    ;
     localSettings.DriveAssists.ESP.UnderMinComp = activeConfig->DriveAssists.ESP.UnderMinComp;
     localSettings.DriveAssists.ESP.UnderMaxComp = activeConfig->DriveAssists.ESP.UnderMaxComp;
+
+    localSettings.DriveAssists.LSD.Enable = activeConfig->DriveAssists.LSD.Enable;
+    localSettings.DriveAssists.LSD.Viscosity = activeConfig->DriveAssists.LSD.Viscosity;
 
     localSettings.ShiftOptions.UpshiftCut     = activeConfig->ShiftOptions.UpshiftCut    ;
     localSettings.ShiftOptions.DownshiftBlip  = activeConfig->ShiftOptions.DownshiftBlip ;
@@ -225,12 +233,15 @@ void ScriptSettings::SaveGeneral() const {
 
     // [MT_PARAMS]
     ini.SetDoubleValue("MT_PARAMS", "ClutchCatchpoint", MTParams.ClutchThreshold);
-    ini.SetDoubleValue("MT_PARAMS", "StallingThreshold", MTParams.StallingThreshold);
     ini.SetDoubleValue("MT_PARAMS", "StallingRPM", MTParams.StallingRPM);
+    ini.SetDoubleValue("MT_PARAMS", "StallingRate", MTParams.StallingRate);
+    ini.SetDoubleValue("MT_PARAMS", "StallingSlip", MTParams.StallingSlip);
     ini.SetDoubleValue("MT_PARAMS", "RPMDamage", MTParams.RPMDamage);
     ini.SetDoubleValue("MT_PARAMS", "MisshiftDamage", MTParams.MisshiftDamage);
     ini.SetDoubleValue("MT_PARAMS", "EngBrakePower", MTParams.EngBrakePower);
     ini.SetDoubleValue("MT_PARAMS", "EngBrakeThreshold", MTParams.EngBrakeThreshold);
+    ini.SetDoubleValue("MT_PARAMS", "CreepIdleThrottle", MTParams.CreepIdleThrottle);
+    ini.SetDoubleValue("MT_PARAMS", "CreepIdleRPM", MTParams.CreepIdleRPM);
 
     // [GAMEPLAY_ASSISTS]
     ini.SetBoolValue("GAMEPLAY_ASSISTS", "SimpleBike", GameAssists.SimpleBike);
@@ -238,8 +249,9 @@ void ScriptSettings::SaveGeneral() const {
     ini.SetBoolValue("GAMEPLAY_ASSISTS", "AutoGear1", GameAssists.AutoGear1);
     ini.SetBoolValue("GAMEPLAY_ASSISTS", "AutoLookBack", GameAssists.AutoLookBack);
     ini.SetBoolValue("GAMEPLAY_ASSISTS", "ThrottleStart", GameAssists.ThrottleStart);
-    ini.SetBoolValue("GAMEPLAY_ASSISTS", "HidePlayerInFPV", GameAssists.HidePlayerInFPV);
     ini.SetBoolValue("GAMEPLAY_ASSISTS", "DefaultNeutral", GameAssists.DefaultNeutral);
+    ini.SetBoolValue("GAMEPLAY_ASSISTS", "DisableAutostart", GameAssists.DisableAutostart);
+    ini.SetBoolValue("GAMEPLAY_ASSISTS", "LeaveEngineRunning", GameAssists.LeaveEngineRunning);
 
     // [DRIVING_ASSISTS]
     ini.SetBoolValue("DRIVING_ASSISTS", "ABS", DriveAssists.ABS.Enable);
@@ -257,6 +269,9 @@ void ScriptSettings::SaveGeneral() const {
     ini.SetDoubleValue("DRIVING_ASSISTS", "ESPUnderMinComp", DriveAssists.ESP.UnderMinComp);
     ini.SetDoubleValue("DRIVING_ASSISTS", "ESPUnderMaxComp", DriveAssists.ESP.UnderMaxComp);
 
+    ini.SetBoolValue("DRIVING_ASSISTS", "LSD", DriveAssists.LSD.Enable);
+    ini.SetDoubleValue("DRIVING_ASSISTS", "LSDViscosity", DriveAssists.LSD.Viscosity);
+
     //[CUSTOM_STEERING]
     ini.SetLongValue("CUSTOM_STEERING", "Mode", CustomSteering.Mode);
     ini.SetDoubleValue("CUSTOM_STEERING", "CountersteerMult", CustomSteering.CountersteerMult);
@@ -269,6 +284,9 @@ void ScriptSettings::SaveGeneral() const {
 
     ini.SetBoolValue("CUSTOM_STEERING", "CustomRotation", CustomSteering.CustomRotation);
     ini.SetDoubleValue("CUSTOM_STEERING", "CustomRotationDegrees", CustomSteering.CustomRotationDegrees);
+
+    ini.SetBoolValue("CUSTOM_STEERING", "MouseSteering", CustomSteering.MouseSteering);
+    ini.SetDoubleValue("CUSTOM_STEERING", "MouseSensitivity", CustomSteering.MouseSensitivity);
 
     // [SHIFT_OPTIONS]
     ini.SetBoolValue("SHIFT_OPTIONS", "UpshiftCut", ShiftOptions.UpshiftCut);
@@ -381,10 +399,54 @@ void ScriptSettings::SaveGeneral() const {
     ini.SetDoubleValue("HUD", "DashIndicatorsYpos", HUD.DashIndicators.YPos);
     ini.SetDoubleValue("HUD", "DashIndicatorsSize", HUD.DashIndicators.Size);
 
+    ini.SetBoolValue("HUD", "MouseEnable", HUD.MouseSteering.Enable);
+    ini.SetDoubleValue("HUD", "MouseXPos", HUD.MouseSteering.XPos);
+    ini.SetDoubleValue("HUD", "MouseYPos", HUD.MouseSteering.YPos);
+    ini.SetDoubleValue("HUD", "MouseXSz", HUD.MouseSteering.XSz);
+    ini.SetDoubleValue("HUD", "MouseYSz", HUD.MouseSteering.YSz);
+    ini.SetDoubleValue("HUD", "MouseMarkerXSz", HUD.MouseSteering.MarkerXSz);
+
+    ini.SetLongValue("HUD", "MouseBgR", HUD.MouseSteering.BgR);
+    ini.SetLongValue("HUD", "MouseBgG", HUD.MouseSteering.BgG);
+    ini.SetLongValue("HUD", "MouseBgB", HUD.MouseSteering.BgB);
+    ini.SetLongValue("HUD", "MouseBgA", HUD.MouseSteering.BgA);
+
+    ini.SetLongValue("HUD", "MouseFgR", HUD.MouseSteering.FgR);
+    ini.SetLongValue("HUD", "MouseFgG", HUD.MouseSteering.FgG);
+    ini.SetLongValue("HUD", "MouseFgB", HUD.MouseSteering.FgB);
+    ini.SetLongValue("HUD", "MouseFgA", HUD.MouseSteering.FgA);
+
     // [MISC]
     ini.SetBoolValue("MISC", "UDPTelemetry", Misc.UDPTelemetry);
     ini.SetBoolValue("MISC", "DashExtensions", Misc.DashExtensions);
     ini.SetBoolValue("MISC", "SyncAnimations", Misc.SyncAnimations);
+    ini.SetBoolValue("MISC", "HidePlayerInFPV", Misc.HidePlayerInFPV);
+
+    // [CAM]
+    ini.SetBoolValue("CAM", "Enable", Misc.Camera.Enable);
+    ini.SetLongValue("CAM", "AttachId", Misc.Camera.AttachId);
+    ini.SetBoolValue("CAM", "FollowMovement", Misc.Camera.FollowMovement);
+    ini.SetDoubleValue("CAM", "MovementMultVel", Misc.Camera.MovementMultVel);
+    ini.SetDoubleValue("CAM", "MovementMultRot", Misc.Camera.MovementMultRot);
+    ini.SetDoubleValue("CAM", "MovementCap", Misc.Camera.MovementCap);
+    ini.SetBoolValue("CAM", "RemoveHead", Misc.Camera.RemoveHead);
+    ini.SetDoubleValue("CAM", "FOV", Misc.Camera.FOV);
+    ini.SetDoubleValue("CAM", "OffsetHeight", Misc.Camera.OffsetHeight);
+    ini.SetDoubleValue("CAM", "OffsetForward", Misc.Camera.OffsetForward);
+    ini.SetDoubleValue("CAM", "OffsetSide", Misc.Camera.OffsetSide);
+    ini.SetDoubleValue("CAM", "Pitch", Misc.Camera.Pitch);
+    ini.SetDoubleValue("CAM", "LookTime", Misc.Camera.LookTime);
+    ini.SetDoubleValue("CAM", "MouseLookTime", Misc.Camera.MouseLookTime);
+    ini.SetLongValue("CAM", "MouseCenterTimeout", Misc.Camera.MouseCenterTimeout);
+    ini.SetDoubleValue("CAM", "MouseSensitivity", Misc.Camera.MouseSensitivity);
+
+    ini.SetBoolValue("CAM", "BikeDisable", Misc.Camera.Bike.Disable);
+    ini.SetLongValue("CAM", "BikeAttachId", Misc.Camera.Bike.AttachId);
+    ini.SetDoubleValue("CAM", "BikeFOV", Misc.Camera.Bike.FOV);
+    ini.SetDoubleValue("CAM", "BikeOffsetHeight", Misc.Camera.Bike.OffsetHeight);
+    ini.SetDoubleValue("CAM", "BikeOffsetForward", Misc.Camera.Bike.OffsetForward);
+    ini.SetDoubleValue("CAM", "BikeOffsetSide", Misc.Camera.Bike.OffsetSide);
+    ini.SetDoubleValue("CAM", "BikePitch", Misc.Camera.Bike.Pitch);
 
     // [UPDATE]
     ini.SetBoolValue("UPDATE", "EnableUpdate", Update.EnableUpdate);
@@ -526,12 +588,15 @@ void ScriptSettings::parseSettingsGeneral() {
     MTOptions.HardLimiter = ini.GetBoolValue("MT_OPTIONS", "HardLimiter", MTOptions.HardLimiter);
 
     MTParams.ClutchThreshold =      ini.GetDoubleValue("MT_PARAMS", "ClutchCatchpoint", MTParams.ClutchThreshold);
-    MTParams.StallingThreshold =    ini.GetDoubleValue("MT_PARAMS", "StallingThreshold", MTParams.StallingThreshold);
     MTParams.StallingRPM =          ini.GetDoubleValue("MT_PARAMS", "StallingRPM", MTParams.StallingRPM);
+    MTParams.StallingRate =         ini.GetDoubleValue("MT_PARAMS", "StallingRate", MTParams.StallingRate);
+    MTParams.StallingSlip =         ini.GetDoubleValue("MT_PARAMS", "StallingSlip", MTParams.StallingSlip);
     MTParams.RPMDamage =            ini.GetDoubleValue("MT_PARAMS", "RPMDamage", MTParams.RPMDamage);
     MTParams.MisshiftDamage =       ini.GetDoubleValue("MT_PARAMS", "MisshiftDamage", MTParams.MisshiftDamage);
     MTParams.EngBrakePower =        ini.GetDoubleValue("MT_PARAMS", "EngBrakePower", MTParams.EngBrakePower);
     MTParams.EngBrakeThreshold =    ini.GetDoubleValue("MT_PARAMS", "EngBrakeThreshold", MTParams.EngBrakeThreshold);
+    MTParams.CreepIdleThrottle =    ini.GetDoubleValue("MT_PARAMS", "CreepIdleThrottle", MTParams.CreepIdleThrottle);
+    MTParams.CreepIdleRPM      =    ini.GetDoubleValue("MT_PARAMS", "CreepIdleRPM"     , MTParams.CreepIdleRPM     );
 
     GameAssists.DefaultNeutral =    ini.GetBoolValue("GAMEPLAY_ASSISTS", "DefaultNeutral", GameAssists.DefaultNeutral);
     GameAssists.SimpleBike =        ini.GetBoolValue("GAMEPLAY_ASSISTS", "SimpleBike", GameAssists.SimpleBike);
@@ -539,12 +604,13 @@ void ScriptSettings::parseSettingsGeneral() {
     GameAssists.AutoGear1 =         ini.GetBoolValue("GAMEPLAY_ASSISTS", "AutoGear1", GameAssists.AutoGear1);
     GameAssists.AutoLookBack =      ini.GetBoolValue("GAMEPLAY_ASSISTS", "AutoLookBack", GameAssists.AutoLookBack);
     GameAssists.ThrottleStart =     ini.GetBoolValue("GAMEPLAY_ASSISTS", "ThrottleStart", GameAssists.ThrottleStart);
-    GameAssists.HidePlayerInFPV =   ini.GetBoolValue("GAMEPLAY_ASSISTS", "HidePlayerInFPV", GameAssists.HidePlayerInFPV);
+    GameAssists.DisableAutostart =  ini.GetBoolValue("GAMEPLAY_ASSISTS", "DisableAutostart", GameAssists.DisableAutostart);
+    GameAssists.LeaveEngineRunning = ini.GetBoolValue("GAMEPLAY_ASSISTS", "LeaveEngineRunning", GameAssists.LeaveEngineRunning);
 
     // [DRIVING_ASSISTS]
     DriveAssists.ABS.Enable = ini.GetBoolValue("DRIVING_ASSISTS", "ABS", DriveAssists.ABS.Enable);
     DriveAssists.ABS.Filter = ini.GetBoolValue("DRIVING_ASSISTS", "ABSFilter", DriveAssists.ABS.Filter);
-    DriveAssists.TCS.Enable = ini.GetLongValue("DRIVING_ASSISTS", "TCS", DriveAssists.TCS.Enable);
+    DriveAssists.TCS.Enable = ini.GetBoolValue("DRIVING_ASSISTS", "TCS", DriveAssists.TCS.Enable);
     DriveAssists.TCS.Mode = ini.GetLongValue("DRIVING_ASSISTS", "TCSMode", DriveAssists.TCS.Mode);
     DriveAssists.TCS.SlipMax = ini.GetDoubleValue("DRIVING_ASSISTS", "TCSSlipMax", DriveAssists.TCS.SlipMax);
     DriveAssists.ESP.Enable = ini.GetBoolValue("DRIVING_ASSISTS", "ESP", DriveAssists.ESP.Enable);
@@ -556,6 +622,9 @@ void ScriptSettings::parseSettingsGeneral() {
     DriveAssists.ESP.UnderMax = ini.GetDoubleValue("DRIVING_ASSISTS", "ESPUnderMax", DriveAssists.ESP.UnderMax);
     DriveAssists.ESP.UnderMinComp = ini.GetDoubleValue("DRIVING_ASSISTS", "ESPUnderMinComp", DriveAssists.ESP.UnderMinComp);
     DriveAssists.ESP.UnderMaxComp = ini.GetDoubleValue("DRIVING_ASSISTS", "ESPUnderMaxComp", DriveAssists.ESP.UnderMaxComp);
+
+    DriveAssists.LSD.Enable = ini.GetBoolValue("DRIVING_ASSISTS", "LSD", DriveAssists.LSD.Enable);
+    DriveAssists.LSD.Viscosity = ini.GetDoubleValue("DRIVING_ASSISTS", "LSDViscosity", DriveAssists.LSD.Viscosity);
 
     // [SHIFT_OPTIONS]
     ShiftOptions.UpshiftCut = ini.GetBoolValue("SHIFT_OPTIONS", "UpshiftCut", ShiftOptions.UpshiftCut);
@@ -584,6 +653,9 @@ void ScriptSettings::parseSettingsGeneral() {
 
     CustomSteering.CustomRotation = ini.GetBoolValue("CUSTOM_STEERING", "CustomRotation", CustomSteering.CustomRotation);
     CustomSteering.CustomRotationDegrees = ini.GetDoubleValue("CUSTOM_STEERING", "CustomRotationDegrees", CustomSteering.CustomRotationDegrees);
+
+    CustomSteering.MouseSteering = ini.GetBoolValue("CUSTOM_STEERING", "MouseSteering", CustomSteering.MouseSteering);
+    CustomSteering.MouseSensitivity = ini.GetDoubleValue("CUSTOM_STEERING", "MouseSensitivity", CustomSteering.MouseSensitivity);
 
     // [HUD]
     HUD.Enable = ini.GetBoolValue("HUD", "EnableHUD", HUD.Enable);
@@ -681,10 +753,54 @@ void ScriptSettings::parseSettingsGeneral() {
     HUD.DashIndicators.YPos = ini.GetDoubleValue("HUD", "DashIndicatorsYpos", HUD.DashIndicators.YPos);
     HUD.DashIndicators.Size = ini.GetDoubleValue("HUD", "DashIndicatorsSize", HUD.DashIndicators.Size);
 
+    HUD.MouseSteering.Enable = ini.GetBoolValue("HUD", "MouseEnable", HUD.MouseSteering.Enable);
+    HUD.MouseSteering.XPos = ini.GetDoubleValue("HUD", "MouseXPos", HUD.MouseSteering.XPos);
+    HUD.MouseSteering.YPos = ini.GetDoubleValue("HUD", "MouseYPos", HUD.MouseSteering.YPos);
+    HUD.MouseSteering.XSz = ini.GetDoubleValue("HUD", "MouseXSz", HUD.MouseSteering.XSz);
+    HUD.MouseSteering.YSz = ini.GetDoubleValue("HUD", "MouseYSz", HUD.MouseSteering.YSz);
+    HUD.MouseSteering.MarkerXSz = ini.GetDoubleValue("HUD", "MouseMarkerXSz", HUD.MouseSteering.MarkerXSz);
+
+    HUD.MouseSteering.BgR = ini.GetLongValue("HUD", "MouseBgR", HUD.MouseSteering.BgR);
+    HUD.MouseSteering.BgG = ini.GetLongValue("HUD", "MouseBgG", HUD.MouseSteering.BgG);
+    HUD.MouseSteering.BgB = ini.GetLongValue("HUD", "MouseBgB", HUD.MouseSteering.BgB);
+    HUD.MouseSteering.BgA = ini.GetLongValue("HUD", "MouseBgA", HUD.MouseSteering.BgA);
+
+    HUD.MouseSteering.FgR = ini.GetLongValue("HUD", "MouseFgR", HUD.MouseSteering.FgR);
+    HUD.MouseSteering.FgG = ini.GetLongValue("HUD", "MouseFgG", HUD.MouseSteering.FgG);
+    HUD.MouseSteering.FgB = ini.GetLongValue("HUD", "MouseFgB", HUD.MouseSteering.FgB);
+    HUD.MouseSteering.FgA = ini.GetLongValue("HUD", "MouseFgA", HUD.MouseSteering.FgA);
+
     // [MISC]
     Misc.UDPTelemetry = ini.GetBoolValue("MISC", "UDPTelemetry", Misc.UDPTelemetry);
     Misc.DashExtensions = ini.GetBoolValue("MISC", "DashExtensions", Misc.DashExtensions);
     Misc.SyncAnimations = ini.GetBoolValue("MISC", "SyncAnimations", Misc.SyncAnimations);
+    Misc.HidePlayerInFPV = ini.GetBoolValue("MISC", "HidePlayerInFPV", Misc.HidePlayerInFPV);
+
+    // [CAM]
+    Misc.Camera.Enable = ini.GetBoolValue("CAM", "Enable", Misc.Camera.Enable);
+    Misc.Camera.AttachId = ini.GetLongValue("CAM", "AttachId", Misc.Camera.AttachId);
+    Misc.Camera.FollowMovement = ini.GetBoolValue("CAM", "FollowMovement", Misc.Camera.FollowMovement);
+    Misc.Camera.MovementMultVel = ini.GetDoubleValue("CAM", "MovementMultVel", Misc.Camera.MovementMultVel);
+    Misc.Camera.MovementMultRot = ini.GetDoubleValue("CAM", "MovementMultRot", Misc.Camera.MovementMultRot);
+    Misc.Camera.MovementCap = ini.GetDoubleValue("CAM", "MovementCap", Misc.Camera.MovementCap);
+    Misc.Camera.RemoveHead = ini.GetBoolValue("CAM", "RemoveHead", Misc.Camera.RemoveHead);
+    Misc.Camera.FOV = ini.GetDoubleValue("CAM", "FOV", Misc.Camera.FOV);
+    Misc.Camera.OffsetHeight = ini.GetDoubleValue("CAM", "OffsetHeight", Misc.Camera.OffsetHeight);
+    Misc.Camera.OffsetForward = ini.GetDoubleValue("CAM", "OffsetForward", Misc.Camera.OffsetForward);
+    Misc.Camera.OffsetSide = ini.GetDoubleValue("CAM", "OffsetSide", Misc.Camera.OffsetSide);
+    Misc.Camera.Pitch = ini.GetDoubleValue("CAM", "Pitch", Misc.Camera.Pitch);
+    Misc.Camera.LookTime = ini.GetDoubleValue("CAM", "LookTime", Misc.Camera.LookTime);
+    Misc.Camera.MouseLookTime = ini.GetDoubleValue("CAM", "MouseLookTime", Misc.Camera.MouseLookTime);
+    Misc.Camera.MouseCenterTimeout = ini.GetLongValue("CAM", "MouseCenterTimeout", Misc.Camera.MouseCenterTimeout);
+    Misc.Camera.MouseSensitivity = ini.GetDoubleValue("CAM", "MouseSensitivity", Misc.Camera.MouseSensitivity);
+
+    Misc.Camera.Bike.Disable = ini.GetBoolValue("CAM", "BikeDisable", Misc.Camera.Bike.Disable);
+    Misc.Camera.Bike.AttachId = ini.GetLongValue("CAM", "BikeAttachId", Misc.Camera.Bike.AttachId);
+    Misc.Camera.Bike.FOV = ini.GetDoubleValue("CAM", "BikeFOV", Misc.Camera.Bike.FOV);
+    Misc.Camera.Bike.OffsetHeight = ini.GetDoubleValue("CAM", "BikeOffsetHeight", Misc.Camera.Bike.OffsetHeight);
+    Misc.Camera.Bike.OffsetForward = ini.GetDoubleValue("CAM", "BikeOffsetForward", Misc.Camera.Bike.OffsetForward);
+    Misc.Camera.Bike.OffsetSide = ini.GetDoubleValue("CAM", "BikeOffsetSide", Misc.Camera.Bike.OffsetSide);
+    Misc.Camera.Bike.Pitch = ini.GetDoubleValue("CAM", "BikePitch", Misc.Camera.Bike.Pitch);
 
     // [UPDATE]
     Update.EnableUpdate = ini.GetBoolValue("UPDATE", "EnableUpdate", Update.EnableUpdate);
@@ -711,8 +827,16 @@ void ScriptSettings::parseSettingsGeneral() {
         std::string toleranceKey = fmt::format("Timer{}Tolerance", it);
 
         std::string unit = ini.GetValue("DEBUG", unitKey.c_str(), "");
-        if (unit == "") {
-            logger.Write(INFO, "[Settings] Timers: Stopped after %d timers", it);
+        if (unit.empty()) {
+            if (it == 0) {
+                logger.Write(INFO, "[Settings] Timers: No timers registered");
+            }
+            else if (it == 1) {
+                logger.Write(INFO, "[Settings] Timers: Registered 1 timer");
+            }
+            else {
+                logger.Write(INFO, "[Settings] Timers: Registered %d timers", it);
+            }
             break;
         }
 
@@ -832,6 +956,7 @@ void ScriptSettings::parseSettingsControls(CarControls* scriptControl) {
 void ScriptSettings::parseSettingsWheel(CarControls *scriptControl) {
     CSimpleIniA ini;
     ini.SetUnicode();
+    ini.SetMultiKey();
     SI_Error result = ini.LoadFile(settingsWheelFile.c_str());
     CHECK_LOG_SI_ERROR(result, "load");
 
@@ -1063,15 +1188,26 @@ void ScriptSettings::parseSettingsWheel(CarControls *scriptControl) {
     scriptControl->WheelToKeyGUID = 
         DeviceIndexToGUID(ini.GetLongValue("TO_KEYBOARD", "DEVICE", -1), Wheel.InputDevices.RegisteredGUIDs);
     for (int i = 0; i < MAX_RGBBUTTONS; i++) {
-        std::string entryString = ini.GetValue("TO_KEYBOARD", std::to_string(i).c_str(), "UNKNOWN");
-        if (entryString == "UNKNOWN") {
-            scriptControl->WheelToKey[i] = -1;
-        }
-        else {
-            scriptControl->WheelToKey[i] = str2key(entryString);
+        scriptControl->WheelToKey[i].clear();
+        CSimpleIniA::TNamesDepend values;
+        if (ini.GetAllValues("TO_KEYBOARD", std::to_string(i).c_str(), values)) {
+            values.sort(CSimpleIniA::Entry::LoadOrder());
+            for (const auto& entry : values) {
+                scriptControl->WheelToKey[i].push_back(str2key(entry.pItem));
+            }
         }
     }
 
+    for (const auto& pov : WheelDirectInput::POVDirections) {
+        scriptControl->WheelToKeyPov[pov].clear();
+        CSimpleIniA::TNamesDepend values;
+        if (ini.GetAllValues("TO_KEYBOARD", std::to_string(pov).c_str(), values)) {
+            values.sort(CSimpleIniA::Entry::LoadOrder());
+            for (const auto& entry : values) {
+                scriptControl->WheelToKeyPov[pov].push_back(str2key(entry.pItem));
+            }
+        }
+    }
 }
 
 ptrdiff_t ScriptSettings::SteeringAppendDevice(const GUID &dev_guid, const std::string& dev_name) {
@@ -1128,30 +1264,22 @@ void ScriptSettings::SteeringSaveButton(const std::string & confTag, ptrdiff_t i
     CHECK_LOG_SI_ERROR(result, "save");
 }
 
-void ScriptSettings::SteeringSaveHShifter(const std::string & confTag, ptrdiff_t index, const std::vector<int>& button) {
-    CSimpleIniA ini;
-    ini.SetUnicode();
-    SI_Error result = ini.LoadFile(settingsWheelFile.c_str());
-    CHECK_LOG_SI_ERROR(result, "load");
-
-    ini.SetValue(confTag.c_str(), "DEVICE", std::to_string(index).c_str());
-
-    ini.SetLongValue(confTag.c_str(), "GEAR_R", button[0]);
-    for (uint8_t i = 1; i < button.size(); ++i) {
-        ini.SetLongValue(confTag.c_str(), fmt::format("GEAR_{}", i).c_str(), button[i]);
-    }
-
-    result = ini.SaveFile(settingsWheelFile.c_str());
-    CHECK_LOG_SI_ERROR(result, "save");
-}
-
 void ScriptSettings::SteeringAddWheelToKey(const std::string &confTag, ptrdiff_t index, int button, const std::string &keyName) {
     CSimpleIniA ini;
     ini.SetUnicode();
+    ini.SetMultiKey();
     SI_Error result = ini.LoadFile(settingsWheelFile.c_str());
     CHECK_LOG_SI_ERROR(result, "load");
 
-    ini.SetValue(confTag.c_str(), "DEVICE", std::to_string(index).c_str());
+    std::string device = ini.GetValue(confTag.c_str(), "DEVICE", "");
+    if (device.empty()) {
+        ini.SetValue(confTag.c_str(), "DEVICE", std::to_string(index).c_str());
+    }
+    else if (device != std::to_string(index)) {
+        ini.Delete(confTag.c_str(), "DEVICE");
+        ini.SetValue(confTag.c_str(), "DEVICE", std::to_string(index).c_str());
+    }
+
     ini.SetValue(confTag.c_str(), std::to_string(button).c_str(), keyName.c_str());
     result = ini.SaveFile(settingsWheelFile.c_str());
     CHECK_LOG_SI_ERROR(result, "save");
@@ -1160,6 +1288,7 @@ void ScriptSettings::SteeringAddWheelToKey(const std::string &confTag, ptrdiff_t
 bool ScriptSettings::SteeringClearWheelToKey(int button) {
     CSimpleIniA ini;
     ini.SetUnicode();
+    ini.SetMultiKey();
     SI_Error result = ini.LoadFile(settingsWheelFile.c_str());
     CHECK_LOG_SI_ERROR(result, "load");
 

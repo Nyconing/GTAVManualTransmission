@@ -36,6 +36,12 @@ enum class ABSType {
     ABS_ALT_OPTION,
 };
 
+enum class IgnitionState {
+    Off,
+    Stall,
+    On,
+};
+
 struct VehiclePeripherals {
     // "Peripherals"
     bool BlinkerLeft = false;
@@ -44,6 +50,7 @@ struct VehiclePeripherals {
     int BlinkerTicks = 0;
     bool LookBackRShoulder = false;
     int RadioStationIndex = 0;
+    IgnitionState IgnitionState = IgnitionState::Off;
 };
 
 enum class ShiftDirection {
@@ -91,7 +98,7 @@ struct WheelPatchStates {
 // all the damn time.
 class VehicleData {
 public:
-    VehicleData(VehicleExtensions& ext);
+    VehicleData();
 
     void SetVehicle(Vehicle v);
     void Update();
@@ -99,7 +106,6 @@ public:
     // These should be read-only, but I cba to write getters for all of these.    
     // Vehicle this data is valid for
     Vehicle mVehicle;
-    VehicleExtensions& mExt;
     uint64_t mHandlingPtr;
 
     Vector3 mVelocity;
@@ -164,7 +170,7 @@ public:
     VehicleClass mClass;
     VehicleDomain mDomain;
     bool mIsAmphibious;
-
+    bool mIsRhd;
 private:
     std::vector<bool> getDrivenWheels();
     float getAverageDrivenWheelTyreSpeeds();
