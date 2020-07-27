@@ -1,6 +1,5 @@
 #include "XInputController.hpp"
 #include "../ScriptSettings.hpp"
-#include "../Util/TimeHelper.hpp"
 #include <string>
 
 extern ScriptSettings g_settings;
@@ -14,7 +13,8 @@ XInputController::XInputController(int playerNumber)
     , xboxButtonPrev()
     , controllerState()
     , buttonState(0)
-    , controllerNum(playerNumber - 1) {}
+    , controllerNum(playerNumber - 1)
+    , lastResult(ERROR_DEVICE_NOT_CONNECTED) {}
 
 XInputController::~XInputController() = default;
 
@@ -23,20 +23,13 @@ XINPUT_STATE XInputController::getState() {
     ZeroMemory(&controllerState, sizeof(XINPUT_STATE));
 
     // Get the state
-    XInputGetState(controllerNum, &controllerState);
+    lastResult = XInputGetState(controllerNum, &controllerState);
 
     return controllerState;
 }
 
 bool XInputController::isConnected() {
-    // Zeroise the state
-    XINPUT_STATE discard_this;
-    ZeroMemory(&discard_this, sizeof(XINPUT_STATE));
-
-    // Get the state
-    DWORD Result = XInputGetState(controllerNum, &discard_this);
-
-    return Result == ERROR_SUCCESS;
+    return lastResult == ERROR_SUCCESS;
 }
 
 void XInputController::Vibrate(int leftVal, int rightVal) {
@@ -90,10 +83,10 @@ bool XInputController::IsButtonJustReleased(XboxButtons buttonType) {
 bool XInputController::WasButtonHeldForMs(XboxButtons buttonType, int milliseconds) {
     if (!isConnected()) return false;
     if (IsButtonJustPressed(buttonType)) {
-        pressTime[buttonType] = milliseconds_now();
+        pressTime[buttonType] = GetTickCount64();
     }
     if (IsButtonJustReleased(buttonType)) {
-        releaseTime[buttonType] = milliseconds_now();
+        releaseTime[buttonType] = GetTickCount64();
     }
 
     if ((releaseTime[buttonType] - pressTime[buttonType]) >= milliseconds) {
@@ -107,20 +100,20 @@ bool XInputController::WasButtonHeldForMs(XboxButtons buttonType, int millisecon
 bool XInputController::WasButtonHeldOverMs(XboxButtons buttonType, int millis) {
     if (!isConnected()) return false;
     if (IsButtonJustPressed(buttonType)) {
-        pressTime[buttonType] = milliseconds_now();
+        pressTime[buttonType] = GetTickCount64();
     }
 
-    return IsButtonPressed(buttonType) && pressTime[buttonType] != 0 && milliseconds_now() - pressTime[buttonType] >=
+    return IsButtonPressed(buttonType) && pressTime[buttonType] != 0 && GetTickCount64() - pressTime[buttonType] >=
         millis;
 }
 
 XInputController::TapState XInputController::WasButtonTapped(XboxButtons buttonType, int milliseconds) {
     if (!isConnected()) return TapState::ButtonUp;
     if (IsButtonJustPressed(buttonType)) {
-        tapPressTime[buttonType] = milliseconds_now();
+        tapPressTime[buttonType] = GetTickCount64();
     }
     if (IsButtonJustReleased(buttonType)) {
-        tapReleaseTime[buttonType] = milliseconds_now();
+        tapReleaseTime[buttonType] = GetTickCount64();
     }
 
     if ((tapReleaseTime[buttonType] - tapPressTime[buttonType]) > 1 &&
@@ -129,7 +122,7 @@ XInputController::TapState XInputController::WasButtonTapped(XboxButtons buttonT
         tapReleaseTime[buttonType] = 0;
         return TapState::Tapped;
     } 
-    if ((milliseconds_now() - tapPressTime[buttonType]) <= milliseconds) {
+    if ((GetTickCount64() - tapPressTime[buttonType]) <= milliseconds) {
         return TapState::ButtonDown;
     }
     return TapState::ButtonUp;
@@ -161,9 +154,12 @@ float XInputController::GetAnalogValue(XboxButtons buttonType) {
 }
 
 void XInputController::Update() {
+    auto state = getState();
+
     if (!isConnected()) return;
 
-    buttonState = getState().Gamepad.wButtons;
+    buttonState = state.Gamepad.wButtons;
+
     for (int i = 0; i < SIZEOF_XboxButtons; i++) {
         xboxButtonPrev[i] = xboxButtonCurr[i];
     }

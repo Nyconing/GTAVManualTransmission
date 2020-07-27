@@ -23,9 +23,6 @@
     <ClCompile Include="Util\Logger.cpp">
       <Filter>Util</Filter>
     </ClCompile>
-    <ClCompile Include="Util\TimeHelper.cpp">
-      <Filter>Util</Filter>
-    </ClCompile>
     <ClCompile Include="..\thirdparty\GTAVMenuBase\menu.cpp">
       <Filter>Menu</Filter>
     </ClCompile>
@@ -232,6 +229,7 @@
     </ClCompile>
     <ClCompile Include="DrivingAssists.cpp" />
     <ClCompile Include="BlockableControls.cpp" />
+    <ClCompile Include="AWD.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="script.h" />
@@ -265,9 +263,6 @@
       <Filter>Memory</Filter>
     </ClInclude>
     <ClInclude Include="Util\Logger.hpp">
-      <Filter>Util</Filter>
-    </ClInclude>
-    <ClInclude Include="Util\TimeHelper.hpp">
       <Filter>Util</Filter>
     </ClInclude>
     <ClInclude Include="..\thirdparty\GTAVMenuBase\menu.h">
@@ -506,6 +501,7 @@
     <ClInclude Include="DrivingAssists.h" />
     <ClInclude Include="ScriptHUD.h" />
     <ClInclude Include="BlockableControls.h" />
+    <ClInclude Include="AWD.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">
