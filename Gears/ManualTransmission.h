@@ -43,6 +43,19 @@ MT_API bool         MT_NeutralGear();
 MT_API int          MT_GetShiftMode();
 
 /**
+ * \brief           Get the eco rate for the auto gearbox.
+ * \return          The eco rate value, likely between 0.01 and 0.50
+ */
+MT_API float        MT_GetAutoEcoRate();
+
+/**
+ * \brief           Set the eco rate for the auto gearbox.
+ *                  Warning: Settings will save after this call!
+ * \param [in] rate The desired rate. Recommended between 0.01 and 0.50
+ */
+MT_API void         MT_SetAutoEcoRate(float rate);
+
+/**
  * \brief           Set the shifting mode.
  *                  1: Sequential
  *                  2: H-Pattern

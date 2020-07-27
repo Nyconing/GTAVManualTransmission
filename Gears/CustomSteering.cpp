@@ -187,12 +187,15 @@ void CustomSteering::Update() {
     float limitRadians = VExt::GetMaxSteeringAngle(g_playerVehicle);
     float reduction = calculateReduction();
 
-    float steer = -PAD::GET_DISABLED_CONTROL_NORMAL(1, ControlMoveLeftRight);
+    //float steer = -PAD::GET_DISABLED_CONTROL_NORMAL(1, ControlMoveLeftRight);
+    auto input = XInputController(1);
+    input.Update();
+    float steer = input.GetAnalogValue(XInputController::XboxButtons::LeftThumbLeft) + (-input.GetAnalogValue(XInputController::XboxButtons::LeftThumbRight));
 
     float steerCurr;
 
-    float steerValGammaL = pow(-steer, g_settings.CustomSteering.Gamma);
-    float steerValGammaR = pow(steer, g_settings.CustomSteering.Gamma);
+    float steerValGammaL = pow(-steer, g_settings.CustomSteering.Gamma*2);
+    float steerValGammaR = pow(steer, g_settings.CustomSteering.Gamma*2);
     float steerValGamma = steer < 0.0f ? -steerValGammaL : steerValGammaR;
 
     float secondsSinceLastTick = static_cast<float>(milliseconds_now() - lastTickTime) / 1000.0f;

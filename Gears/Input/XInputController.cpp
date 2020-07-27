@@ -175,7 +175,7 @@ float XInputController::filterDeadzone(XboxButtons buttonType, int input) {
         case LeftThumbLeft:
         case LeftThumbRight:
         case LeftThumbUp:
-        case LeftThumbDown:		deadzone = XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE;
+        case LeftThumbDown:		deadzone = 0;
                                 break;
         case RightThumbLeft:
         case RightThumbRight:
