@@ -63,7 +63,7 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <AdditionalIncludeDirectories>$(SolutionDir)thirdparty\ScriptHookV_SDK;$(SolutionDir)thirdparty\GTAVMenuBase;$(SolutionDir)thirdparty;$(SolutionDir)thirdparty\fmt\include;$(SolutionDir)thirdparty\yaml-cpp\include</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>MT_EXPORTS;DASHHOOK_RUNTIME;CURL_STATICLIB;WIN32_LEAN_AND_MEAN;NOMINMAX;NOGDI;_USE_MATH_DEFINES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
@@ -157,6 +157,7 @@
     <ClCompile Include="..\thirdparty\yaml-cpp\src\singledocparser.cpp" />
     <ClCompile Include="..\thirdparty\yaml-cpp\src\stream.cpp" />
     <ClCompile Include="..\thirdparty\yaml-cpp\src\tag.cpp" />
+    <ClCompile Include="Memory\sysAllocator.cpp" />
     <ClCompile Include="AtcuGearbox.cpp" />
     <ClCompile Include="AtcuLogic.cpp" />
     <ClCompile Include="AWD.cpp" />
@@ -169,6 +170,7 @@
     <ClCompile Include="Input\NativeInput.cpp" />
     <ClCompile Include="Input\USBNotify.cpp" />
     <ClCompile Include="ManualTransmission.cpp" />
+    <ClCompile Include="Memory\HandlingReplace.cpp" />
     <ClCompile Include="Memory\NativeMatrix.cpp" />
     <ClCompile Include="Memory\NativeVectors.cpp" />
     <ClCompile Include="Memory\VehicleBone.cpp" />
@@ -252,6 +254,7 @@
     <ClInclude Include="..\thirdparty\yaml-cpp\src\stringsource.h" />
     <ClInclude Include="..\thirdparty\yaml-cpp\src\tag.h" />
     <ClInclude Include="..\thirdparty\yaml-cpp\src\token.h" />
+    <ClInclude Include="Memory\sysAllocator.h" />
     <ClInclude Include="AtcuGearbox.h" />
     <ClInclude Include="AtcuLogic.h" />
     <ClInclude Include="AWD.h" />
@@ -262,6 +265,8 @@
     <ClInclude Include="DrivingAssists.h" />
     <ClInclude Include="Input\NativeInput.h" />
     <ClInclude Include="Input\USBNotify.h" />
+    <ClInclude Include="Memory\atArray.h" />
+    <ClInclude Include="Memory\HandlingReplace.h" />
     <ClInclude Include="Memory\NativeMatrix.h" />
     <ClInclude Include="Memory\NativeVectors.h" />
     <ClInclude Include="Memory\VehicleBone.h" />
