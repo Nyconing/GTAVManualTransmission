@@ -22,6 +22,8 @@
 #include "Memory/MemoryPatcher.hpp"
 #include "Memory/Offsets.hpp"
 #include "Memory/VehicleFlags.h"
+#include "Memory/sysAllocator.h"
+#include "Memory/HandlingReplace.h"
 
 #include "Input/CarControls.hpp"
 
@@ -54,7 +56,6 @@
 #include <numeric>
 
 #include "AWD.h"
-
 
 namespace fs = std::filesystem;
 using VExt = VehicleExtensions;
@@ -175,7 +176,7 @@ void functionDash() {
     }
 
     // https://www.gta5-mods.com/vehicles/nissan-skyline-gt-r-bnr32
-    if (ENTITY::GET_ENTITY_MODEL(g_playerVehicle) == joaat("r32")) {
+    if (g_settings().DriveAssists.AWD.SpecialFlags & AWD::AWD_REMAP_DIAL_Y97Y_R32) {
         data.oilPressure = lerp(
             data.oilPressure,
             g_DriveBiasTransfer,
@@ -291,27 +292,7 @@ void update_vehicle() {
             g_gearStates.FakeNeutral = g_settings.GameAssists.DefaultNeutral;
 
         // replace handling
-        auto handlingAddr = VExt::GetHandlingPtr(g_playerVehicle);
-        uint32_t handlingHash = *(uint32_t*)(handlingAddr + 0x8);
-        if (g_driveBiasMap.find(handlingHash) == g_driveBiasMap.end()) {
-            float fDriveBiasFront = *(float*)(handlingAddr + hOffsets1604.fDriveBiasFront);
-            float fDriveBiasRear = *(float*)(handlingAddr + hOffsets1604.fDriveBiasRear);
-
-            float fDriveBiasFrontNorm;
-
-            // Full FWD
-            if (fDriveBiasFront == 1.0f && fDriveBiasRear == 0.0f) {
-                fDriveBiasFrontNorm = 1.0f;
-            }
-            // Full RWD
-            else if (fDriveBiasFront == 0.0f && fDriveBiasRear == 1.0f) {
-                fDriveBiasFrontNorm = 0.0f;
-            }
-            else {
-                fDriveBiasFrontNorm = fDriveBiasFront / 2.0f;
-            }
-            g_driveBiasMap[handlingHash] = fDriveBiasFrontNorm;
-        }
+        HandlingReplace::UpdateVehicles(g_playerVehicle);
     }
 
     if (g_settings.Debug.Metrics.EnableTimers && vehAvail) {
@@ -501,7 +482,7 @@ void update_manual_features() {
         }
     }
 
-    if (g_settings().DriveAssists.AWD) {
+    if (g_settings().DriveAssists.AWD.Enable) {
         AWD::Update();
     }
 
@@ -2286,6 +2267,8 @@ void main() {
         logger.Write(ERROR, "Patchability test failed!");
         MemoryPatcher::Error = true;
     }
+
+    rage::init();
 
     setupCompatibility();
 
